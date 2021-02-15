@@ -1,6 +1,6 @@
 import numpy as np 
 
-def votingbased(masklist,rows=3,columns=4):
+def votingbased(masklist,rows=1024,columns=1024):
     """
     Function that takes multiple masks as input, and returns a new mask based on the votes on each pixel of each individual mask
     The input should be a list of the masks, e.g. [mask1, mask2, mask3]
