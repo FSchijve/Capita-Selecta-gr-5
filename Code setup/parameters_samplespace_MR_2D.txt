@@ -18,7 +18,7 @@
 
 // Optimizer
 (Optimizer "FullSearch")
-(FullSearchSpace0 "test" 0 -1.5 1.5 0.01)
+(FullSearchSpace0 "test" 0 -0.3 0.3 0.01)
 
 
 // Sampling voxels from the images
@@ -60,7 +60,7 @@
 
 // The pixel type and format of the resulting deformed moving image
 (ResultImagePixelType "float")
-(ResultImageFormat "tiff")
+(ResultImageFormat "mhd")
 
 
 
