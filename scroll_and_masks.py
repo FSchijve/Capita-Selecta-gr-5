@@ -133,9 +133,10 @@ fig, ax = plt.subplots(1, 2)
 tracker = IndexTracker(ax, masked_fixed_array) #keep arrayyyyyyy
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 
+#________subplot??? doesn't work yet________________
 #fig, ax1 = plt.subplots(1, 2)
-tracker1 = IndexTracker(ax, masked_moving_array) #keep arrayyyyyyy
-fig.canvas.mpl_connect('scroll_event', tracker1.onscroll)
+#tracker1 = IndexTracker(ax, masked_moving_array) #keep arrayyyyyyy
+#fig.canvas.mpl_connect('scroll_event', tracker1.onscroll)
 
 # Iteration_file_path = os.path.join(result_folder_path, r'IterationInfo.0.R0.txt')
 # log = elastix.logfile(Iteration_file_path)
