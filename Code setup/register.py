@@ -31,6 +31,8 @@ def register3d(fixednr,movingnr,parameter_path):
         parameters=[parameter_path],
         output_dir=f'results{runnr}')
     
+    return runnr
+    
 def register2d(fixednr,movingnr,slicenr,parameter_path):
     selectslice(fixednr,slicenr)
     selectslice(movingnr,slicenr)
@@ -62,6 +64,8 @@ def register2d(fixednr,movingnr,slicenr,parameter_path):
         moving_image=moving_image_path,
         parameters=[parameter_path],
         output_dir=f'results{runnr}')
+    
+    return runnr
     
 def findnewrunnr():
     #Find the runnumber of the new file
