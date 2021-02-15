@@ -9,7 +9,8 @@
 (MovingInternalImagePixelType "float")
 
 // The dimensions of the fixed and moving image
-(MovingImageDimension 3)
+(FixedImageDimension 2)
+(MovingImageDimension 2)
 
 // Registration setup
 (Registration "MultiResolutionRegistration")
@@ -59,7 +60,7 @@
 
 // The pixel type and format of the resulting deformed moving image
 (ResultImagePixelType "float")
-(ResultImageFormat "mhd")
+(ResultImageFormat "tiff")
 
 
 
