@@ -18,11 +18,12 @@ def getDiceScore(true_mask, pred_mask, non_seg_score=1.0):
     y = 2. * intersection.sum() / im_sum
     return y
 
-A = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
-B = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
-C = [[1,1,1,1,0,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,1,1,1,0,0]]
+#Example lines, uncomment to test
+#A = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
+#B = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
+#C = [[1,1,1,1,0,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,1,1,1,0,0]]
 
-scoreAB = getDiceScore(A,B)
-scoreAC = getDiceScore(A,C)
-print(scoreAB)
-print(scoreAC)
+#scoreAB = getDiceScore(A,B)
+#scoreAC = getDiceScore(A,C)
+#print(scoreAB)
+#print(scoreAC)
