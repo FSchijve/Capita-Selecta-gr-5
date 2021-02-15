@@ -12,11 +12,11 @@ How to use the registration code
   3. Open the TransformParameters.0.txt file, you can find this in the results folder.
   4. Paste this Offset behind "Origin".    
     
-  - Do a transformation:
-    1. This can be done in the same run as doing a registration, in that case the runnr variable can be commented out.
-    2. This can be done in a different run the doing the registration, in that case the runnr variable should conatain the correct runnr.
-    3. Uncomment the transform line, and run.
-  - Do a visualisation:
-    1. Uncomment the registration method, and run (2D or 3D).
-    
-    Note that Giulia uploaded another visualisation method. It is better to use that one! 
+- Do a transformation
+  1. This can be done in the same run as doing a registration, in that case the runnr variable can be commented out.
+  2. This can be done in a different run the doing the registration, in that case the runnr variable should conatain the correct runnr.
+  3. Uncomment the transform line, and run.
+- Do a visualisation:
+  1. Uncomment the registration method, and run (2D or 3D).
+  
+  Note that Giulia uploaded another visualisation method. It is better to use that one! 
