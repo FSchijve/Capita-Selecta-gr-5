@@ -10,12 +10,12 @@ How to use the registration code
   1. Open the mr_bffe.mhd file of the moving image. Note that when using the 2D registration method, this is the file in the data folder: patientnumber_slicenumber
   2. Copy the Offset (for example, with patient 102, this offset is -46.9093 -77.4416 -67.0081)
   3. Open the TransformParameters.0.txt file, you can find this in the results folder.
-  4. Paste this Offset behind "Origin".    
+  4. Paste this Offset behind "Origin".
     
 - Do a transformation
   1. This can be done in the same run as doing a registration, in that case the runnr variable can be commented out.
   2. This can be done in a different run the doing the registration, in that case the runnr variable should conatain the correct runnr.
-  3. Uncomment the transform line, and run.
+  3. Uncomment the wanted transform line (transform or transformmask), and run.
 - Do a visualisation:
   1. Uncomment the registration method, and run (2D or 3D).
   
