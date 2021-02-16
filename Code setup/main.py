@@ -1,10 +1,10 @@
-from transform import transform, transformmask
+from transform import transform2d, transform3d
 from visualize import visualize2d, visualize3d
 from register import register2d, register3d
 
-movingnr = 102
-fixednr = 107
-slicenr = 32
+movingnr = 120
+fixednr = 125
+slicenr = 30
 parameter_file = 'parameters_samplespace_MR_2D.txt'
 
 #register commands
@@ -15,8 +15,8 @@ parameter_file = 'parameters_samplespace_MR_2D.txt'
 runnr = 5
 
 #transform command
-transform(movingnr,runnr)
-#transformmask(movingnr,runnr)
+#transform2d(movingnr,slicenr,runnr,transformmask=True)
+#transform3d(movingnr,runnr,transformmask=True)
 
 #visualisation commands
 #visualize2d(fixednr,movingnr,slicenr,runnr)
