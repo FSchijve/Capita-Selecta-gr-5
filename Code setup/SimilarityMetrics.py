@@ -1,12 +1,53 @@
 import numpy as np
+import SimpleITK as sitk
+import scipy.spatial
+import medpy.metric
+
+"""
+Similarity metrics using medpy library
+"""
+def medpyDC(result, reference):
+    dicecoefficient = medpy.metric.binary.dc(result, reference)
+
+    return dicecoefficient
+
+def medpyHD(result, reference):
+    hausdorffdistance = medpy.metric.binary.hd(result, reference)
+
+    return hausdorffdistance
+
+def medpyRVD(result, reference):
+    ravd = medpy.metric.binary.ravd(result, reference)
+    ravd = ravd*100
+
+    return ravd
+
+
+"""
+Manually programmed similarity metrics
+To do: Add Hausdorff distance
+"""
+
+def getDSC(result, reference):    
+    """Compute the Dice Similarity Coefficient."""
+    #testArray   = sitk.GetArrayFromImage(testImage).flatten()
+    #resultArray = sitk.GetArrayFromImage(resultImage).flatten()
+    testImage = np.asarray(reference)
+    resultImage = np.asarray(result)
+
+    testImage = np.ndarray.flatten(testImage)
+    resultImage = np.ndarray.flatten(resultImage)
     
-def getDiceScore(true_mask, pred_mask, non_seg_score=1.0):
+    # similarity = 1.0 - dissimilarity
+    return 1.0 - scipy.spatial.distance.dice(testImage, resultImage) 
+    
+def getDiceScore(result, reference, non_seg_score=1.0):
     """
     Computes the Dice coefficient between two masks
     Code largely copied from: https://gist.github.com/gergf/acd8e3fd23347cb9e6dc572f00c63d79    
     """
-    true_mask = np.asarray(true_mask).astype(np.bool_)
-    pred_mask = np.asarray(pred_mask).astype(np.bool_)
+    true_mask = np.asarray(reference).astype(np.bool_)
+    pred_mask = np.asarray(result).astype(np.bool_)
 
     # If both segmentations are all zero, the dice will be 1.
     im_sum = true_mask.sum() + pred_mask.sum()
@@ -18,12 +59,9 @@ def getDiceScore(true_mask, pred_mask, non_seg_score=1.0):
     y = 2. * intersection.sum() / im_sum
     return y
 
-#Example lines, uncomment to test
-#A = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
-#B = [[0,1,1,1,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,0,0,1,0],[0,1,1,1,1,0]]
-#C = [[1,1,1,1,0,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,0,0,0,1,0],[1,1,1,1,0,0]]
+def getRVD(result, reference):   
+    """Volume statistics."""
 
-#scoreAB = getDiceScore(A,B)
-#scoreAC = getDiceScore(A,C)
-#print(scoreAB)
-#print(scoreAC)
+    vd = 100 * (result.sum() - reference.sum()) / float(reference.sum())
+
+    return vd
