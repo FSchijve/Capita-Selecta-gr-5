@@ -2,6 +2,8 @@ import numpy as np
 import SimpleITK as sitk
 import scipy.spatial
 import medpy.metric
+from config import data_path
+import os
 
 """
 Similarity metrics using medpy library
@@ -65,3 +67,15 @@ def getRVD(result, reference):
     vd = 100 * (result.sum() - reference.sum()) / float(reference.sum())
 
     return vd
+
+"""
+Used for mask operations
+"""
+
+def findfixedmask(fixednr, slicenr):
+    fixed_mask_path = os.path.join(data_path,f"p{fixednr}\prostaat.mhd")
+    fixed_mask = sitk.ReadImage(fixed_mask_path)
+    fixed_mask_array_full = sitk.GetArrayFromImage(fixed_mask)
+    fixed_mask_array = fixed_mask_array_full[slicenr,:,:]
+
+    return fixed_mask_array
