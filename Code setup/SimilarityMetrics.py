@@ -79,3 +79,10 @@ def findfixedmask(fixednr, slicenr):
     fixed_mask_array = fixed_mask_array_full[slicenr,:,:]
 
     return fixed_mask_array
+
+def findtransformedmask(runnr):
+    transformed_mask_path = os.path.join(f"results{runnr}",r"transformedmask\result.mhd")
+    transformed_mask = sitk.ReadImage(transformed_mask_path)
+    transformed_mask_array = sitk.GetArrayFromImage(transformed_mask)
+
+    return transformed_mask_array
