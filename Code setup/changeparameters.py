@@ -30,7 +30,6 @@ def replace(parameter_file,keyword,value):
             
     with open(parameter_file, 'w') as f:
         for i, line in enumerate(parameter_lines):
-            print(line[1:len(keyword)])
             if line[1:len(keyword)+1] == keyword:
                 line = "(" + keyword + " "+ str(value) + ")\n"
             f.writelines(line)
