@@ -23,3 +23,14 @@ def changetxttuples(tuple):
     newtxtfile.write(newparameters)
 
     newtxtfile.close()
+
+def replace(parameter_file,keyword,value):
+    with open(parameter_file,'r') as f:
+        parameter_lines = f.readlines()
+            
+    with open(parameter_file, 'w') as f:
+        for i, line in enumerate(parameter_lines):
+            print(line[1:len(keyword)])
+            if line[1:len(keyword)+1] == keyword:
+                line = "(" + keyword + " "+ str(value) + ")\n"
+            f.writelines(line)
