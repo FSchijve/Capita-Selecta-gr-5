@@ -12,3 +12,6 @@ How to use the registration code
   - Do a visualisation:
     1. Uncomment the registration method, and run (2D or 3D).
     Note that Giulia uploaded another visualisation method (scroll_and_masks.py), which also works nicely.
+    
+    
+    Some recent updates have been done to Optimizeparameters.py/ changeparameters.py/ transform.py/ SimilarityMetrics.py on 22/02. 
