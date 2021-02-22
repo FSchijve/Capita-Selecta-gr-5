@@ -3,7 +3,7 @@ import elastix
 from config import data_path, transformix_path
 from changeparameters import replace, readparameter
 
-def transform2d(movingnr,slicenr,runnr,parameter_file,transformmask = True):
+def transform2d(movingnr,slicenr,runnr,transformmask = True):
     movingnr = str(movingnr) + '_' + str(slicenr)
     
     transform_path = os.path.join(f'results{runnr}', r'TransformParameters.0.txt')
