@@ -34,3 +34,15 @@ def replace(parameter_file,keyword,value):
             if line[1:len(keyword)+1] == keyword:
                 line = "(" + keyword + " "+ str(value) + ")\n"
             f.writelines(line)
+            
+def readparameter(parameter_file,keyword):
+    #read lines
+    with open(parameter_file,'r') as f:
+        parameter_lines = f.readlines()
+
+    #return 
+    for line in parameter_lines:
+        if line[1:len(keyword)+1] == keyword:
+            return(line[len(keyword)+2:-2])
+    
+    raise Exception("ERROR: parameter "+keyword+" not found in "+parameter_file)
