@@ -33,9 +33,12 @@ for x in listofvalues:
 
     listofDCs.append(DCscore)
     listofHDs.append(HDscore)
-
+    
+print(keyword)
 print(listofvalues)
+print('Dice scores')
 print(listofDCs)
+print('Hausendorff distances')
 print(listofHDs)
 
 fig, ax = plt.subplots(1,2)
