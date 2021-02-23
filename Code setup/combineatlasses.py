@@ -363,6 +363,7 @@ def validatemodel(modelnr,validationset):
     print("Validating model " + str(modelnr) + '\n')
     atlasset, optimizeset, parameter_file, DCscores, threshold, sliceweighting = readmodelfile(modelnr)
     if sliceweighting:
+        raise Exception("Weighting per slice isn't implemented yet!")
         finalmasks = getfinalmasks2dDice(atlasset,validationset,DCscores,parameter_file,threshold=threshold)
         val_scores = validationscores(validationset,finalmasks)
     else:
@@ -375,6 +376,7 @@ def runmodel(modelnr,unknownset):
     print("Running model " + str(modelnr) + '\n')
     atlasset, optimizeset, parameter_file, DCscores, threshold, sliceweighting = readmodelfile(modelnr)
     if sliceweighting:
+        raise Exception("Weighting per slice isn't implemented yet!")
         finalmasks = getfinalmasks2dDice(atlasset,unknownset,DCscores,parameter_file,threshold=threshold)
     else:
         finalmasks = getfinalmasks3dDice(atlasset,unknownset,DCscores,parameter_file,threshold=threshold)

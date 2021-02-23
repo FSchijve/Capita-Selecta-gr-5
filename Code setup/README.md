@@ -14,7 +14,7 @@ How to use the code:
     Note that Giulia uploaded another visualisation method (scroll_and_masks.py), which also works nicely.
   - Create a model, following the steps in the "Dice score" tab of onenote:
     1. Create 3 lists with patientnumbers: an list with future atlasses, a list with images used for optimization and a list with images used for validation.
-    2. Uncomment the model creation method (using weighting based on whole images (3d) or using weighting based on slices (2d) THIS SECOND ONE DOESN'T WORK YET DUE TO A MISSING FUNCTION)
+    2. Uncomment the model creation method (using weighting based on whole images (3d) or using weighting based on slices (2d)), and run.
     3. After creating a model, a model.txt file is created, containing the data of the model.
   - Validate a model
     1. This can be done in the same run as creating the model, in that case the modelnr variable can be commented out.
