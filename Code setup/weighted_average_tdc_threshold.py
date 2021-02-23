@@ -16,8 +16,7 @@ import numpy as np
 
 def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, threshold=0.5):
     
-    # put the z dimension at the begining => DC per patient or DC per slice of patient???
-    # 5 patients to register,5 patients to get DC score, 5 patients for validation
+    #put the z dimension at the begining => DC per patient or DC per slice of patient???
     #if the slices are made of zeroes, we should not count it either...
     slices = len(masklist[0])
     rows = len(masklist[0][0])
@@ -34,18 +33,18 @@ def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, thr
             new_masklist.append(masklist[k])
             new_DCscore.append(DCscore[k])  
     
+    if len(new_masklist) == 0: raise Exception("No mask has dice score > threshold ("+str(threshold)+")")
+
     # Step 2: do the weighting
     for i in range(len(new_DCscore)):
         temp.append(new_DCscore[i]*new_masklist[i])
         masklist_weighted.append(temp[i]/sum(new_DCscore))
-        
-        
+                        
     # Step 3: add masks together         
     summedmask = masklist_weighted[0]
     for j,item in enumerate(masklist_weighted):
         if j == 0: continue
         summedmask += item
-
     
     # Step 4: keep relevant weightings
     newmask=summedmask
@@ -56,7 +55,7 @@ def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, thr
                         newmask[z][x][y]=1
                     else:
                         newmask[z][x][y]=0
-    print(newmask)       
+    #print(newmask)       
     # newmasklist = np.reshape(newmasklist,(len(newmasklist)rows,columns))
     return newmask
 

@@ -2,7 +2,9 @@ import numpy as np
 import SimpleITK as sitk
 import scipy.spatial
 import medpy.metric
+import matplotlib.pyplot as plt
 from config import data_path
+from IPython import get_ipython
 import os
 
 """
@@ -72,11 +74,18 @@ def getRVD(result, reference):
 Used for mask operations
 """
 
-def findfixedmask(fixednr, slicenr):
+def findfixedmask2d(fixednr, slicenr):
     fixed_mask_path = os.path.join(data_path,f"p{fixednr}\prostaat.mhd")
     fixed_mask = sitk.ReadImage(fixed_mask_path)
     fixed_mask_array_full = sitk.GetArrayFromImage(fixed_mask)
     fixed_mask_array = fixed_mask_array_full[slicenr,:,:]
+
+    return fixed_mask_array
+
+def findfixedmask3d(fixednr):
+    fixed_mask_path = os.path.join(data_path,f"p{fixednr}\prostaat.mhd")
+    fixed_mask = sitk.ReadImage(fixed_mask_path)
+    fixed_mask_array = sitk.GetArrayFromImage(fixed_mask)
 
     return fixed_mask_array
 

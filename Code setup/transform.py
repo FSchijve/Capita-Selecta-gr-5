@@ -69,7 +69,6 @@ def transform3d(movingnr,runnr,transformmask = True):
     tr.deformation_field(output_dir=output_path)
 
     if transformmask:
-        print("Transforming the mask as well")
         moving_image_path = os.path.join(data_path,f"p{movingnr}\prostaat.mhd")
 
         #Change BSplineInterpolationOrder in parameterfile for mask transform

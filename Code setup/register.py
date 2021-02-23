@@ -4,11 +4,15 @@ from pathlib import Path
 from config import data_path, elastix_path, transformix_path
 from single_slice import selectslice
 
-def register3d(fixednr,movingnr,parameter_path):
-    runnr = findnewrunnr()
+def register3d(fixednr,movingnr,parameter_path,runnr=-1,verbose=True):
+    if runnr < 0:
+        runnr = findnewrunnr()
     
-    print("Run",runnr)
-    print("------------------")
+    runprint = "Registration run " + str(runnr)
+    if runnr == 1000: runprint = "Registration"
+    if not verbose: runprint += ", moving = " + str(movingnr) + ", fixed = "+str(fixednr)
+    print(runprint)
+    if verbose: print("------------------")
 
     #import images
     fixed_image_path = os.path.join(data_path,f"p{fixednr}\mr_bffe.mhd")
@@ -30,22 +34,28 @@ def register3d(fixednr,movingnr,parameter_path):
     el.register(fixed_image=fixed_image_path,
         moving_image=moving_image_path,
         parameters=[parameter_path],
-        output_dir=output_dir)
+        output_dir=output_dir,
+        verbose=verbose)
     
     writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
 
     return runnr
     
-def register2d(fixednr,movingnr,slicenr,parameter_path):
+def register2d(fixednr,movingnr,slicenr,parameter_path,runnr=-1,verbose=True):
+    if runnr < 0:
+        runnr = findnewrunnr()
+
+
+    runprint = "Registration run " + str(runnr)
+    if not verbose: runprint += ", moving = " + str(movingnr) + ", fixed = "+str(fixednr)+", slice "+str(slicenr)
+    print(runprint)
+    if verbose: print("------------------")
+        
     selectslice(fixednr,slicenr)
     selectslice(movingnr,slicenr)
 
     fixednr = str(fixednr) + '_' + str(slicenr)
     movingnr = str(movingnr) + '_' + str(slicenr)
-    runnr = findnewrunnr()
-       
-    print("Run",runnr)
-    print("------------------")
 
     #import images
     fixed_image_path = os.path.join(data_path,f"p{fixednr}\mr_bffe.mhd")
@@ -67,7 +77,8 @@ def register2d(fixednr,movingnr,slicenr,parameter_path):
     el.register(fixed_image=fixed_image_path,
         moving_image=moving_image_path,
         parameters=[parameter_path],
-        output_dir=output_dir)
+        output_dir=output_dir,
+        verbose=verbose)
 
     writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
     
@@ -87,7 +98,8 @@ def findnewrunnr():
             runnr = int(str(item)[7:]) #Find runnumber
         except:
             continue
-        if runnr >= newrunnr: newrunnr = runnr + 1 #Define new runnnumber
+        if runnr == 1000: continue
+        if runnr >= newrunnr: newrunnr = runnr + 1 #Define new runnumber
     return newrunnr
 
 def writeoffset(data_file_path, parameter_path):

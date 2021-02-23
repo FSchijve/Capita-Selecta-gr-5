@@ -1,3 +1,5 @@
 **/results*
 **/Main.py
 **/__pycache__/
+**/model*
+**/parameters_to_execute_model.txt

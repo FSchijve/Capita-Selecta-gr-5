@@ -2,7 +2,7 @@ from transform import transform2d, transform3d
 from visualize import visualize2d, visualize3d
 from register import register2d, register3d
 from changeparameters import replace, readparameter
-from SimilarityMetrics import medpyDC, medpyHD, findfixedmask
+from SimilarityMetrics import medpyDC, medpyHD, findfixedmask2d
 import os 
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
@@ -17,7 +17,7 @@ listofvalues = ['64', '32', '16', '8', '4', '2']
 
 listofDCs=[]
 listofHDs=[]
-fixed_mask_array = findfixedmask(fixednr, slicenr)
+fixed_mask_array = findfixedmask2d(fixednr, slicenr)
 
 for x in listofvalues:
     replace(parameter_file, keyword, x)
