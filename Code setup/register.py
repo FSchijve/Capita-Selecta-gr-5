@@ -37,7 +37,7 @@ def register3d(fixednr,movingnr,parameter_path,runnr=-1,verbose=True):
         output_dir=output_dir,
         verbose=verbose)
     
-    writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
+    #writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
 
     return runnr
     
@@ -80,7 +80,7 @@ def register2d(fixednr,movingnr,slicenr,parameter_path,runnr=-1,verbose=True):
         output_dir=output_dir,
         verbose=verbose)
 
-    writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
+    #writeoffset(moving_image_path, output_dir + r'\TransformParameters.0.txt')
     
     return runnr
     
