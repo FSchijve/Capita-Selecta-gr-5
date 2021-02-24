@@ -17,7 +17,7 @@ ATLAS
 #threshold2 = 0.5
 #Change these two thresholds accordingly...
 
-def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=0.5, rows=333, columns=271):
+def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=0.5):
     
     #put the z dimension at the begining => DC per patient or DC per slice of patient???
     #if the slices are made of zeroes, we should not count it either...
@@ -58,13 +58,11 @@ def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=
                         newmask[z][x][y]=1
                     else:
                         newmask[z][x][y]=0
-    #print(newmask)       
-    # newmasklist = np.reshape(newmasklist,(len(newmasklist)rows,columns))
     return newmask
 
 #-------------- VOTING PER SLICE ----------------------------------------------
 
-def votingbased_DCweighted_3d_slice(masklist, DCscore, threshold1=0.5, threshold2=0.5, rows=333, columns=271):
+def votingbased_DCweighted_3d_slice(masklist, DCscore, threshold1=0.5, threshold2=0.5):
     patients = len(masklist) 
     slices = len(masklist[0])
     rows = len(masklist[0][0])
@@ -118,7 +116,6 @@ def votingbased_DCweighted_3d_slice(masklist, DCscore, threshold1=0.5, threshold
             
         final_slice_mask.append(newmask) # Stores the weighted mask from this iteration in a final variable 
     
-    #print(final_slice_mask)
     return final_slice_mask         
             
         

@@ -269,7 +269,7 @@ def writemodelfile(atlasset, optimizeset, parameter_file, DCscores, modelnr, thr
         for line in parameter_lines:
             f.writelines(line)
             
-        f.writelines("-------------------------------------------------------------------------\n")        
+        f.writelines("\n-------------------------------------------------------------------------\n")        
         
         f.writelines("Note that you can change the two thresholds below by hand. This won't 'break' anything.\nHowever, any evaluation results will not be correct anymore after changing the thresholds.\n")
         f.writelines("Threshold1 = "+str(threshold1)+'\n')
