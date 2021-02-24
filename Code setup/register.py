@@ -9,7 +9,7 @@ def register3d(fixednr,movingnr,parameter_path,runnr=-1,verbose=True):
         runnr = findnewrunnr()
     
     runprint = "Registration run " + str(runnr)
-    if runnr == 99999: runprint = "Registration"
+    if runnr > 99998: runprint = "Registration"
     if not verbose: runprint += ", moving = " + str(movingnr) + ", fixed = "+str(fixednr)
     print(runprint)
     if verbose: print("------------------")
@@ -97,7 +97,7 @@ def findnewrunnr():
             runnr = int(str(item)[7:]) #Find runnumber
         except:
             continue
-        if runnr == 1000: continue
+        if runnr > 99998: continue
         if runnr >= newrunnr: newrunnr = runnr + 1 #Define new runnumber
     return newrunnr
 

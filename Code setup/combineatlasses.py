@@ -23,6 +23,8 @@ def getaveragedicescore3d(moving,fixed,parameter_file):
     
     for i in fixed:
         for j in moving:
+            if i == j: continue
+
             register3d(i,j,parameter_file,runnr=runnr,verbose=False)
             transform3d(j,runnr,transformmask=True)
 
@@ -51,6 +53,7 @@ def getaveragedicescore2d(moving,fixed,parameter_file):
     
     for i in fixed:
         for j in moving:
+            if i == j: continue
             register3d(i,j,parameter_file,runnr=runnr,verbose=False)
             transform3d(j,runnr,transformmask=True)
 
@@ -88,7 +91,7 @@ def IMatlasIFoptimize3d(atlasset,optimizeset,parameter_file):
         DCscores[i]=getaveragedicescore3d([atlasset[i]],optimizeset,parameter_file)
     return DCscores
 
-def getfinalmasks2dDice(atlasset,validationset,DCscores2D,parameter_file, threshold1=0.5, threshold2=0.5):
+def getfinalmasks2dDice(atlasset,optimizeset,validationset,DCscores2D,parameter_file, threshold1=0.5, threshold2=0.5):
     #This function performs step 6-8 + 10 of the
     #plan, using dice scores for each slice in the atlas images.
     fixed = validationset
@@ -109,7 +112,7 @@ def getfinalmasks2dDice(atlasset,validationset,DCscores2D,parameter_file, thresh
 
     return finalmasks
 
-def getfinalmasks3dDice(atlasset,validationset,DCscore3D,parameter_file,threshold1=0.5,threshold2=0.5):
+def getfinalmasks3dDice(atlasset,optimizeset,validationset,DCscore3D,parameter_file,threshold1=0.5,threshold2=0.5):
     #This function performs step 6-8 + 10 of the
     #plan, using dice scores for each atlas image.
     fixed = validationset
@@ -389,11 +392,25 @@ def createmodel3d(atlasset,optimizeset,parameter_file,threshold1=0.5, threshold2
 def validatemodel(modelnr,validationset):
     print("Validating model " + str(modelnr) + '\n')
     atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting = readmodelfile(modelnr)
+
+    for i in validationset[:]:
+        for j in atlasset:
+            if i == j:
+                print("Patient p"+str(i)+" is in both the atlasset and the validationset. This would create a bias. The patient is removed from the validationset.")
+                validationset.remove(i)
+    for i in validationset[:]:
+        for j in optimizeset:
+            if i == j:
+                print("Patient p"+str(i)+" is in both the optimizeset and the validationset. This would create a bias. The patient is removed from the validationset.")
+                validationset.remove(i)
+
+    if len(validationset) == 0: raise Exception("Validationset is empty.")
+
     if sliceweighting:
-        finalmasks = getfinalmasks2dDice(atlasset,validationset,DCscores,parameter_file,threshold1,threshold2)
+        finalmasks = getfinalmasks2dDice(atlasset,optimizeset,validationset,DCscores,parameter_file,threshold1,threshold2)
         val_scores = validationscores(validationset,finalmasks)
     else:
-        finalmasks = getfinalmasks3dDice(atlasset,validationset,DCscores,parameter_file,threshold1,threshold2)
+        finalmasks = getfinalmasks3dDice(atlasset,optimizeset,validationset,DCscores,parameter_file,threshold1,threshold2)
         val_scores = validationscores(validationset,finalmasks)
     writevalidationfile(validationset, val_scores, modelnr)
     return val_scores
@@ -401,10 +418,18 @@ def validatemodel(modelnr,validationset):
 def runmodel(modelnr,unknownset):
     print("Running model " + str(modelnr) + '\n')
     atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting = readmodelfile(modelnr)
+
+    for i in unknownset:
+        for j in atlasset:
+            if i == j: print("Patient p"+str(i)+" is not unknown: it is part of the atlasset. Are you sure you entered the correct patients?")
+    for i in unknownset:
+        for j in optimizeset:
+            if i == j: print("Patient p"+str(i)+" is not unknown: it is part of the optimizeset. Are you sure you entered the correct patients?")
+
     if sliceweighting:
-        finalmasks = getfinalmasks2dDice(atlasset,unknownset,DCscores,parameter_file,threshold1,threshold2)
+        finalmasks = getfinalmasks2dDice(atlasset,optimizeset,unknownset,DCscores,parameter_file,threshold1,threshold2)
     else:
-        finalmasks = getfinalmasks3dDice(atlasset,unknownset,DCscores,parameter_file,threshold1,threshold2)
+        finalmasks = getfinalmasks3dDice(atlasset,optimizeset,unknownset,DCscores,parameter_file,threshold1,threshold2)
         
     outputnr = findnewmodelresultnr()
     output_dir = f'modelresults{outputnr}'
