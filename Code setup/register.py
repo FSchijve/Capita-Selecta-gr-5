@@ -9,7 +9,7 @@ def register3d(fixednr,movingnr,parameter_path,runnr=-1,verbose=True):
         runnr = findnewrunnr()
     
     runprint = "Registration run " + str(runnr)
-    if runnr == 1000: runprint = "Registration"
+    if runnr == 99999: runprint = "Registration"
     if not verbose: runprint += ", moving = " + str(movingnr) + ", fixed = "+str(fixednr)
     print(runprint)
     if verbose: print("------------------")
@@ -44,7 +44,6 @@ def register3d(fixednr,movingnr,parameter_path,runnr=-1,verbose=True):
 def register2d(fixednr,movingnr,slicenr,parameter_path,runnr=-1,verbose=True):
     if runnr < 0:
         runnr = findnewrunnr()
-
 
     runprint = "Registration run " + str(runnr)
     if not verbose: runprint += ", moving = " + str(movingnr) + ", fixed = "+str(fixednr)+", slice "+str(slicenr)
