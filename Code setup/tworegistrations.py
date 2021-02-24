@@ -36,7 +36,7 @@ transform3d(movingnr,runnr,transformmask=True)
 #visualize3d(fixednr,movingnr,slicenr,runnr)
 
 fixedmask = findfixedmask(107)
-transformedmask = findtransformedmask(18)
+transformedmask = findtransformedmask(runnr)
 
 print(medpyDC(transformedmask, fixedmask))
 print(medpyHD(transformedmask, fixedmask))
@@ -54,7 +54,7 @@ el.register(fixed_image=fixed_image_path,
     parameters=[parameter_file2],
     output_dir=output_dir)
 
-transformedmask2 = findtransformedmask(18)
+transformedmask2 = findtransformedmask(runnr)
 
 print(medpyDC(transformedmask, fixedmask))
 print(medpyHD(transformedmask, fixedmask))
