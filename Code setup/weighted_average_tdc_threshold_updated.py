@@ -9,23 +9,15 @@ Created on Tue Feb 23 13:06:22 2021
 """
 ATLAS
 """
-import numpy as np 
-import SimpleITK as sitk
-import matplotlib.pyplot as plt
-import elastix
-import os
-import imageio
-import numpy as np
-
 # CALCULATE THE WEIGHTED AVERAGE BETWEEN 3D IMAGES.
 # THE TWO DICE COEFFICIENT THRESHOLDS:
 # A. WHICH MASKS WE TAKE WITH US DURING CALCULATION
-threshold1 = 0.5
+#threshold1 = 0.5
 # B. THRESHOLD PER PIXEL, FOR FINAL MASK
-threshold2 = 0.5
+#threshold2 = 0.5
 #Change these two thresholds accordingly...
 
-def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, threshold=0.5):
+def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=0.5, rows=333, columns=271):
     
     #put the z dimension at the begining => DC per patient or DC per slice of patient???
     #if the slices are made of zeroes, we should not count it either...
@@ -44,7 +36,7 @@ def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, thr
             new_masklist.append(masklist[k])
             new_DCscore.append(DCscore[k])  
     
-    if len(new_masklist) == 0: raise Exception("No mask has dice score > threshold ("+str(threshold)+")")
+    if len(new_masklist) == 0: raise Exception("No mask has dice score > threshold1 ("+str(threshold1)+")")
 
     # Step 2: do the weighting
     for i in range(len(new_DCscore)):
@@ -72,7 +64,7 @@ def votingbased_DCweighted_3d_all(masklist, DCscore, rows=1024,columns=1024, thr
 
 #-------------- VOTING PER SLICE ----------------------------------------------
 
-def votingbased_DCweighted_3d_slice(masklist, DCscore, rows=1024,columns=1024, threshold=0.5):
+def votingbased_DCweighted_3d_slice(masklist, DCscore, threshold1=0.5, threshold2=0.5, rows=333, columns=271):
     patients = len(masklist) 
     slices = len(masklist[0])
     rows = len(masklist[0][0])
@@ -84,8 +76,7 @@ def votingbased_DCweighted_3d_slice(masklist, DCscore, rows=1024,columns=1024, t
         masklist_weighted = []
         new_DCscore = []
         new_masklist = []
-        
-        
+
         for j in range(patients):
              # Step 1: Check if DC of slice of patient is above 0.5 
              if (DCscore[j][i] > threshold1):
@@ -94,10 +85,18 @@ def votingbased_DCweighted_3d_slice(masklist, DCscore, rows=1024,columns=1024, t
                  
         #print(sum(new_DCscore))
                  
+    # Step 1.5: extra step if no image has value > threshold
+        if len(new_masklist) == 0:
+            maxDice = 0
+            for j in range(patients):
+                 new_masklist.append(masklist[j][i])
+                 new_DCscore.append(DCscore[j][i])
+                 if DCscore[j][i] > maxDice: maxDice = DCscore[j][i]
+            print("Maximum weight of a slice was "+str(round(maxDice,3))+", lower then threshold "+str(threshold1)+". Threshold is ignored.")
+
     # Step 2: Do the weighting
     # I put this outside of the previous for-loop so that sum(new_DCscore will work)
-        
-        for j in range(patients):
+        for j in range(len(new_masklist)):
             #print(new_DCscore[j])
             masklist_weighted.append((new_DCscore[j]*new_masklist[j])/sum(new_DCscore))
     
@@ -119,7 +118,7 @@ def votingbased_DCweighted_3d_slice(masklist, DCscore, rows=1024,columns=1024, t
             
         final_slice_mask.append(newmask) # Stores the weighted mask from this iteration in a final variable 
     
-    print(final_slice_mask)
+    #print(final_slice_mask)
     return final_slice_mask         
             
         
@@ -127,7 +126,7 @@ def votingbased_DCweighted_3d_slice(masklist, DCscore, rows=1024,columns=1024, t
      
 
 #-------------- EXAMPLE OF INPUT ----------------------------------------------
-
+'''
 a = np.array(
     [[[1, 0, 0], [1, 0, 0], [1, 0, 0]],
     [[1, 0, 0], [1, 0, 0], [1, 0, 0]],
@@ -149,5 +148,5 @@ DC_a = [0.6, 0.8, 0.6]
 DC_b = [0.8, 0.6, 0.8]
 DC_all = [DC_a, DC_b]
 newmask_DC = votingbased_DCweighted_3d_slice(listofmasks,DC_all)
-
+'''
 #plt.imshow(newmask_DC[40,:, :], cmap='gray')

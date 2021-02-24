@@ -11,17 +11,17 @@ import os
 Similarity metrics using medpy library
 """
 def medpyDC(result, reference):
-    dicecoefficient = medpy.metric.binary.dc(result, reference)
+    dicecoefficient = medpy.metric.binary.dc(np.array(result), np.array(reference))
 
     return dicecoefficient
 
 def medpyHD(result, reference):
-    hausdorffdistance = medpy.metric.binary.hd(result, reference)
+    hausdorffdistance = medpy.metric.binary.hd(np.array(result), np.array(reference))
 
     return hausdorffdistance
 
 def medpyRVD(result, reference):
-    ravd = medpy.metric.binary.ravd(result, reference)
+    ravd = medpy.metric.binary.ravd(np.array(result), np.array(reference))
     ravd = ravd*100
 
     return ravd
