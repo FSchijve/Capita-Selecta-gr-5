@@ -280,11 +280,47 @@ def writemodelfile(atlasset, optimizeset, parameter_file, DCscores, modelnr, thr
         if sliceweighting: f.writelines(writefullset(DCscores,"Found weights",2))
         else: f.writelines(writefullset(DCscores,"Found weights",1))
 
-def writevalidationfile(validationset, val_scores, modelnr):
-    validation_file = "modelvalidation" + str(modelnr) + ".txt" 
-    print("\nWriting validation results to " + validation_file)
+def writevalidationfile(validationset, finalmasks, val_scores, modelnr):
+    output_dir = f'modelvalidation{modelnr}'
+    if os.path.exists(output_dir) is False:
+        os.mkdir(output_dir)
+
+    print("Saving validation results in folder " + output_dir)    
+    for i in range(len(validationset)):
+        filename = "maskp"+str(validationset[i])+'.mhd'
+        image = sitk.GetImageFromArray(finalmasks[i])
+        sitk.WriteImage(image,os.path.join(output_dir, filename))
+        
+        original_file = os.path.join(data_path,f"p{validationset[i]}\mr_bffe.mhd")
+        with open(original_file,'r') as f:
+            or_data_lines = f.readlines()
+        with open(os.path.join(output_dir, filename),'r') as f:
+            new_data_lines = f.readlines()
+                
+        with open(os.path.join(output_dir, filename), 'w') as f:
+            for j, line in enumerate(new_data_lines):
+                if line[:6] == "Offset":
+                    for or_line in or_data_lines:
+                        if or_line[:6] == "Offset":
+                            f.writelines(or_line)
+                elif line[:16] == "CenterOfRotation":
+                    for or_line in or_data_lines:
+                        if or_line[:16] == "CenterOfRotation":
+                            f.writelines(or_line)
+                elif line[:14] == "ElementSpacing":
+                    for or_line in or_data_lines:
+                        if or_line[:14] == "ElementSpacing":
+                            f.writelines(or_line)       
+                elif line[:21] == "AnatomicalOrientation":
+                    for or_line in or_data_lines:
+                        if or_line[:21] == "AnatomicalOrientation":
+                            f.writelines(or_line)   
+                else: f.writelines(line)
+
+    validation_file = f"modelvalidation{modelnr}"
+    validation_file += r"\validationresults.txt"
     with open(validation_file, 'w') as f:
-        f.writelines("These are the results of model"+str(modelnr)+".\n")
+        f.writelines("These are the results of model "+str(modelnr)+".\n")
         f.writelines(writefullset(validationset,"validationset",1))
 
         f.writelines("Validation scores:\n")
@@ -351,7 +387,12 @@ def updatemodelfile(modelnr):
                 f.writelines(line)
         
 def readvalidationfile(modelnr):
-    validation_file = "modelvalidation" + str(modelnr) + ".txt" 
+    validation_dir = f'modelvalidation{modelnr}'
+    if os.path.exists(validation_dir) is False:
+        validation_file = "modelvalidation" + str(modelnr) + ".txt" 
+    else:
+        validation_file = f"modelvalidation{modelnr}\validationresults.txt"
+
     with open(validation_file,'r') as f:
         validation_lines = f.readlines()
 
@@ -412,7 +453,7 @@ def validatemodel(modelnr,validationset):
     else:
         finalmasks = getfinalmasks3dDice(atlasset,optimizeset,validationset,DCscores,parameter_file,threshold1,threshold2)
         val_scores = validationscores(validationset,finalmasks)
-    writevalidationfile(validationset, val_scores, modelnr)
+    writevalidationfile(validationset, finalmasks, val_scores, modelnr)
     return val_scores
 
 def runmodel(modelnr,unknownset):

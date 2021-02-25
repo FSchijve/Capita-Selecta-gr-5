@@ -20,7 +20,7 @@ How to use the code:
     1. This can be done in the same run as creating the model, in that case the modelnr variable can be commented out.
     2. This can be done in a different run than creating the model, in that case the modelnr variable should contain the correct modelnr.
     3. Uncomment the validation line (validatemodel(modelnr,validationset)), and run.
-    4. After validating the model, a modelvalidation.txt file is created, containing the validation scores for the different validation images.
+    4. After validating the model, a modelvalidation folder is created, containing validationresults.txt with the validation scores for the different validation images and the estimated masks of the validation set.
   - Run the model on a new dataset
     1. This can be done in the same run as creating the model, in that case the modelnr variable can be commented out.
     2. This can be done in a different run than creating the model, in that case the modelnr variable should contain the correcnt modelnr.
