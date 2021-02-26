@@ -17,8 +17,47 @@ ATLAS
 #threshold2 = 0.5
 #Change these two thresholds accordingly...
 
-def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=0.5):
+def votingbased_MIweighted_3d_all(masklist, MIscores, threshold1=0.5, threshold2=0.5):
+    slices = len(masklist[0])
+    rows = len(masklist[0][0])
+    columns = len(masklist[0][0][0])
     
+    new_masklist = []
+    new_MIscores = []
+    temp = []
+    masklist_weighted = []
+    
+    # Step 1: keep masks with relevant mutual information below threshold
+    for k in range(len(MIscores)):
+          if MIscores[k]<threshold1:
+            new_masklist.append(masklist[k])
+            new_MIscores.append(MIscores[k])  
+    
+    if len(new_masklist) == 0: raise Exception("No mask has mutual information score < threshold1 ("+str(threshold1)+")")
+
+    # Step 2: do the weighting
+    for i in range(len(new_MIscores)):
+        temp.append(new_MIscores[i]*new_masklist[i])
+        masklist_weighted.append(temp[i]/sum(new_MIscores))
+                        
+    # Step 3: add masks together         
+    summedmask = masklist_weighted[0]
+    for j,item in enumerate(masklist_weighted):
+        if j == 0: continue
+        summedmask += item
+    
+    # Step 4: keep relevant weightings
+    newmask=summedmask
+    for x in range(rows):
+        for y in range(columns):
+                for z in range(slices): 
+                    if newmask[z][x][y]>threshold2:
+                        newmask[z][x][y]=1
+                    else:
+                        newmask[z][x][y]=0
+    return newmask    
+
+def votingbased_DCweighted_3d_all(masklist, DCscore, threshold1=0.5, threshold2=0.5): 
     #put the z dimension at the begining => DC per patient or DC per slice of patient???
     #if the slices are made of zeroes, we should not count it either...
     slices = len(masklist[0])

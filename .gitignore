@@ -3,3 +3,4 @@
 **/__pycache__/
 **/model*
 **/parameters_to_execute_model.txt
+**/transformedmasksmodel*

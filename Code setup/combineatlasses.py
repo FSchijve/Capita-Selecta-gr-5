@@ -2,15 +2,45 @@ from transform import transform3d
 from register import register3d
 from pathlib import Path
 from SimilarityMetrics import medpyDC, medpyHD, medpyRVD, findfixedmask3d, findtransformedmask
-from weighted_average_tdc_threshold_updated import votingbased_DCweighted_3d_all, votingbased_DCweighted_3d_slice
+from weighted_average_tdc_threshold_updated import votingbased_DCweighted_3d_all, votingbased_DCweighted_3d_slice, votingbased_MIweighted_3d_all
 import glob, os
 import SimpleITK as sitk
 from config import data_path
 import shutil
 
 nrslices = 86
-runnr = 99999 #Make sure no old resultfiles are overwritten
+runnr = 999999 #Make sure no old resultfiles are overwritten
 
+def savemask(mask, output_path, patient_number):
+    image = sitk.GetImageFromArray(mask)
+    sitk.WriteImage(image,output_path)
+        
+    original_file = os.path.join(data_path,f"p{patient_number}\mr_bffe.mhd")
+    with open(original_file,'r') as f:
+        or_data_lines = f.readlines()
+    with open(output_path,'r') as f:
+        new_data_lines = f.readlines()
+                
+    with open(output_path, 'w') as f:
+        for j, line in enumerate(new_data_lines):
+            if line[:6] == "Offset":
+                for or_line in or_data_lines:
+                    if or_line[:6] == "Offset":
+                        f.writelines(or_line)
+            elif line[:16] == "CenterOfRotation":
+                for or_line in or_data_lines:
+                    if or_line[:16] == "CenterOfRotation":
+                        f.writelines(or_line)
+            elif line[:14] == "ElementSpacing":
+                for or_line in or_data_lines:
+                    if or_line[:14] == "ElementSpacing":
+                        f.writelines(or_line)       
+            elif line[:21] == "AnatomicalOrientation":
+                for or_line in or_data_lines:
+                    if or_line[:21] == "AnatomicalOrientation":
+                        f.writelines(or_line)
+            else: f.writelines(line)
+            
 def getaveragedicescore3d(moving,fixed,parameter_file):
     #Calculates the average dice score of registration
     #between all combinations of moving and fixed images    
@@ -75,6 +105,18 @@ def getaveragedicescore2d(moving,fixed,parameter_file):
     
     return DCscores
 
+def readMI(runnr):
+    output_dir = f'results{runnr}'
+    log_file = output_dir + r"\elastix.log"
+    with open(log_file,'r') as f:
+        lines = f.readlines()
+    
+    for line in lines:
+        if line[:22] == "Final metric value  = ":
+            MI = line[22:]
+    
+    return float(MI)
+
 def IMatlasIFoptimize2d(atlasset,optimizeset,parameter_file):
     #This function performs step 2-5 of the plan,
     #with dice scores for each slice in the atlas images.
@@ -91,46 +133,132 @@ def IMatlasIFoptimize3d(atlasset,optimizeset,parameter_file):
         DCscores[i]=getaveragedicescore3d([atlasset[i]],optimizeset,parameter_file)
     return DCscores
 
-def getfinalmasks2dDice(atlasset,optimizeset,validationset,DCscores2D,parameter_file, threshold1=0.5, threshold2=0.5):
+def getfinalmasks2dDice(atlasset,unknownset,DCscores2D,parameter_file, threshold1=0.5, threshold2=0.5, modelnr=None):
     #This function performs step 6-8 + 10 of the
     #plan, using dice scores for each slice in the atlas images.
-    fixed = validationset
+    #if modelnr != None, all transformed masks will be read/written to a transformedmasksmodel folder.
+    if modelnr != None:
+        transformed_dir = f'transformedmasksmodel{modelnr}'
+        if os.path.exists(transformed_dir) is False:
+            os.mkdir(transformed_dir)
+    
+    fixed = unknownset
     moving = atlasset
 
     finalmasks = []
     for i in fixed:
         transformedmasks = []
         for j in moving:
+            if modelnr != None:
+                try:
+                    mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                    transformedmask = sitk.ReadImage(mask_path)
+                    transformedmask_array = sitk.GetArrayFromImage(transformedmask)
+                    transformedmasks.append(transformedmask_array)
+                    continue
+                except Exception:
+                    pass
+
             register3d(i,j,parameter_file,runnr=runnr,verbose=False)
             transform3d(j,runnr,transformmask=True)
 
             transformedmasks.append(findtransformedmask(runnr))
+
+            if modelnr != None:
+                mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                savemask(findtransformedmask(runnr), mask_path, i)
+            
         finalmasks.append(votingbased_DCweighted_3d_slice(transformedmasks, DCscores2D, threshold1, threshold2))
     
     output_dir = f'results{runnr}'
-    shutil.rmtree(output_dir)
+    if os.path.exists(output_dir): shutil.rmtree(output_dir)
 
     return finalmasks
 
-def getfinalmasks3dDice(atlasset,optimizeset,validationset,DCscore3D,parameter_file,threshold1=0.5,threshold2=0.5):
+def getfinalmasks3dDice(atlasset,unknownset,DCscore3D,parameter_file,threshold1=0.5,threshold2=0.5,modelnr=None):
     #This function performs step 6-8 + 10 of the
     #plan, using dice scores for each atlas image.
-    fixed = validationset
+    #if modelnr != None, all transformed masks will be read/written to a transformedmasksmodel folder.
+    if modelnr != None:
+        transformed_dir = f'transformedmasksmodel{modelnr}'
+        if os.path.exists(transformed_dir) is False:
+            os.mkdir(transformed_dir)
+
+    fixed = unknownset
     moving = atlasset
 
     finalmasks = []
     for i in fixed:
         transformedmasks = []
         for j in moving:
+            if modelnr != None:
+                try:
+                    mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                    transformedmask = sitk.ReadImage(mask_path)
+                    transformedmask_array = sitk.GetArrayFromImage(transformedmask)
+                    transformedmasks.append(transformedmask_array)
+                    continue
+                except Exception:
+                    pass
+
             register3d(i,j,parameter_file,runnr=runnr,verbose=False)
             transform3d(j,runnr,transformmask=True)
 
             transformedmasks.append(findtransformedmask(runnr))
+
+            if modelnr != None:
+                mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                savemask(findtransformedmask(runnr), mask_path, i)
         finalmasks.append(votingbased_DCweighted_3d_all(transformedmasks, DCscore3D, threshold1, threshold2))
     
     output_dir = f'results{runnr}'
-    shutil.rmtree(output_dir)
+    if os.path.exists(output_dir): shutil.rmtree(output_dir)
 
+    return finalmasks
+
+def getfinalmasksMI(atlasset,unknownset,parameter_file,threshold1=0.5,threshold2=0.5,modelnr=None):
+    #if modelnr != None, all transformed masks will be read/written to a transformedmasksmodel folder.
+    if modelnr != None:
+        transformed_dir = f'transformedmasksmodel{modelnr}'
+        if os.path.exists(transformed_dir) is False:
+            os.mkdir(transformed_dir)
+
+    fixed = unknownset
+    moving = atlasset
+
+    finalmasks = []
+    for i in fixed:
+        transformedmasks = []
+        MIscores = []
+        for j in moving:
+            if modelnr != None:
+                try:
+                    mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                    transformedmask = sitk.ReadImage(mask_path)
+                    transformedmask_array = sitk.GetArrayFromImage(transformedmask)
+                    transformedmasks.append(transformedmask_array)
+                    with open(os.path.join(transformed_dir,"MIscore"+"IM"+str(j)+"IF"+str(i)+".txt"), 'r') as f:
+                        MIscores.append(float(f.readlines()[0]))
+                    continue
+                except Exception:
+                    pass
+
+            register3d(i,j,parameter_file,runnr=runnr,verbose=False)
+            transform3d(j,runnr,transformmask=True)
+
+            transformedmasks.append(findtransformedmask(runnr))
+            MIscores.append(readMI(runnr))
+            if modelnr != None:
+                mask_path = os.path.join(transformed_dir,"IM"+str(j)+"IF"+str(i)+"mask.mhd")
+                savemask(findtransformedmask(runnr), mask_path, i)
+                with open(os.path.join(transformed_dir,"MIscore"+"IM"+str(j)+"IF"+str(i)+".txt"), 'w') as f:
+                    f.writelines(str(readMI(runnr)))
+
+        finalmasks.append(votingbased_MIweighted_3d_all(transformedmasks, MIscores, threshold1, threshold2))
+    
+    output_dir = f'results{runnr}'
+    if os.path.exists(output_dir): shutil.rmtree(output_dir)
+    
     return finalmasks
 
 def validationscores(validationset,finalmasks):
@@ -139,6 +267,10 @@ def validationscores(validationset,finalmasks):
     for i in range(len(validationset)):
         reference = findfixedmask3d(validationset[i])
         result = finalmasks[i]
+        
+        if sum(sum(sum(x) for x in y) for y in finalmasks[i]) == 0:
+            scores.append([0,0,-100])
+            continue
         DCscore = medpyDC(result,reference)
         HDscore = medpyHD(result,reference)
         RVDscore = medpyRVD(result,reference)
@@ -252,6 +384,30 @@ def listtoint2d(l):
             l[i][j] = int(l[i][j])
     return l
      
+def writemodelfileMI(atlasset, parameter_file, modelnr, threshold1, threshold2):
+    model_file = "model" + str(modelnr) + ".txt" 
+    print("\nWriting model to " + model_file)
+    with open(model_file, 'w') as f:
+        f.writelines("These are the parameters of model "+str(modelnr)+".\n")
+        
+        f.writelines("The model applies weighting based on registration of the images.\n")
+
+        f.writelines(writefullset(atlasset,"atlasset",1))
+
+        f.writelines("\nUsed parameterfile:\n")
+        f.writelines("-------------------------------------------------------------------------\n")        
+        
+        with open(parameter_file,'r') as fp:
+            parameter_lines = fp.readlines()            
+        for line in parameter_lines:
+            f.writelines(line)
+            
+        f.writelines("\n-------------------------------------------------------------------------\n")        
+        
+        f.writelines("Note that you can change the two thresholds below by hand. This won't 'break' anything.\nHowever, any evaluation results will not be correct anymore after changing the thresholds.\n")
+        f.writelines("Threshold1 = "+str(threshold1)+'\n')
+        f.writelines("Threshold2 = "+str(threshold2)+'\n')
+
 def writemodelfile(atlasset, optimizeset, parameter_file, DCscores, modelnr, threshold1, threshold2, sliceweighting):
     model_file = "model" + str(modelnr) + ".txt" 
     print("\nWriting model to " + model_file)
@@ -328,19 +484,28 @@ def writevalidationfile(validationset, finalmasks, val_scores, modelnr):
             f.writelines("p" + str(item) + '\n')
             f.writelines("DC = " + str(val_scores[i][0]) + '\n')
             f.writelines("HD = " + str(val_scores[i][1]) + '\n')
-            f.writelines("AVD = " + str(val_scores[i][2]) + '\n')
+            f.writelines("RVD = " + str(val_scores[i][2]) + '\n')
 
 def readmodelfile(modelnr):
     model_file = "model" + str(modelnr) + ".txt"
     with open(model_file,'r') as f:
         model_lines = f.readlines()
 
-    if getlineafter(model_lines,"The model applies weighting per ") == "image.\n": sliceweighting=False
-    else: sliceweighting = True
+    if getlineafter(model_lines,"The model applies weighting ") == "per image.\n":
+        sliceweighting = False
+        MIweighting = False
+    elif getlineafter(model_lines,"The model applies weighting ") == "per slice.\n":
+        sliceweighting = True
+        MIweighting = False
+    elif getlineafter(model_lines,"The model applies weighting ") == "based on registration of the images.\n":
+        sliceweighting = False
+        MIweighting = True
+    else: raise Exception("Model weighing method unclear.")
 
     atlasset = listtoint1d(read1dlist(getlineafter(model_lines,"atlasset = ")))
-    optimizeset = listtoint1d(read1dlist(getlineafter(model_lines,"optimizeset = ")))
-
+    if not MIweighting: optimizeset = listtoint1d(read1dlist(getlineafter(model_lines,"optimizeset = ")))
+    else: optimizeset = None
+    
     parameterlines = False
     firstline = False
     parameter_file = "parameters_to_execute_model.txt"
@@ -355,17 +520,19 @@ def readmodelfile(modelnr):
             if line == "Used parameterfile:\n":
                 parameterlines = True
         
-    if sliceweighting: DCscores = listtofloat2d(read2dlist(getlineafter(model_lines,"Found weights = ")))
-    else: DCscores = listtofloat1d(read1dlist(getlineafter(model_lines,"Found weights = ")))
+    if not MIweighting:
+        if sliceweighting: DCscores = listtofloat2d(read2dlist(getlineafter(model_lines,"Found weights = ")))
+        else: DCscores = listtofloat1d(read1dlist(getlineafter(model_lines,"Found weights = ")))
+    else: DCscores = None
 
     try:
         threshold1 = float(getlineafter(model_lines,"Threshold1 = "))
         threshold2 = float(getlineafter(model_lines,"Threshold2 = "))
     except Exception:
         updatemodelfile(modelnr)
-        atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting = readmodelfile(modelnr)
+        atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting, MIweighting = readmodelfile(modelnr)
         print("If this line appears over and over again, there is a mistake in the model file! If it appears only once, don't worry.")
-    return atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting
+    return atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting, MIweighting
 
 def updatemodelfile(modelnr):
     model_file = "model" + str(modelnr) + ".txt"
@@ -409,7 +576,7 @@ def readvalidationfile(modelnr):
                 values[0] = float(line[5:])
             elif line[0:2] == "HD":
                 values[1] = float(line[5:])
-            elif line[0:3] == "AVD":
+            elif line[0:3] == "AVD" or line[0:3] == "RVD":
                 values[2] = float(line[6:])
                 val_scores.append(values.copy())
     return validationset, val_scores
@@ -430,35 +597,46 @@ def createmodel3d(atlasset,optimizeset,parameter_file,threshold1=0.5, threshold2
     writemodelfile(atlasset, optimizeset, parameter_file, DCscores2D, modelnr, threshold1, threshold2, sliceweighting = False)
     return modelnr
 
+def createmodelMI(atlasset,parameter_file,threshold1=0.5, threshold2=0.5):
+    modelnr = findnewmodelnr()
+    print("Creating model " + str(modelnr) + '\n')
+
+    writemodelfileMI(atlasset, parameter_file, modelnr, threshold1, threshold2)
+    return modelnr
+    
+
 def validatemodel(modelnr,validationset):
     print("Validating model " + str(modelnr) + '\n')
-    atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting = readmodelfile(modelnr)
+    atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting, MIweighting = readmodelfile(modelnr)
 
     for i in validationset[:]:
         for j in atlasset:
             if i == j:
                 print("Patient p"+str(i)+" is in both the atlasset and the validationset. This would create a bias. The patient is removed from the validationset.")
                 validationset.remove(i)
-    for i in validationset[:]:
-        for j in optimizeset:
-            if i == j:
-                print("Patient p"+str(i)+" is in both the optimizeset and the validationset. This would create a bias. The patient is removed from the validationset.")
-                validationset.remove(i)
+    if not MIweighting:
+        for i in validationset[:]:
+            for j in optimizeset:
+                if i == j:
+                    print("Patient p"+str(i)+" is in both the optimizeset and the validationset. This would create a bias. The patient is removed from the validationset.")
+                    validationset.remove(i)
 
     if len(validationset) == 0: raise Exception("Validationset is empty.")
 
-    if sliceweighting:
-        finalmasks = getfinalmasks2dDice(atlasset,optimizeset,validationset,DCscores,parameter_file,threshold1,threshold2)
-        val_scores = validationscores(validationset,finalmasks)
+    if MIweighting:
+        finalmasks = getfinalmasksMI(atlasset,validationset,parameter_file,threshold1,threshold2,modelnr)
     else:
-        finalmasks = getfinalmasks3dDice(atlasset,optimizeset,validationset,DCscores,parameter_file,threshold1,threshold2)
-        val_scores = validationscores(validationset,finalmasks)
+        if sliceweighting:
+            finalmasks = getfinalmasks2dDice(atlasset,validationset,DCscores,parameter_file,threshold1,threshold2,modelnr)
+        else:
+            finalmasks = getfinalmasks3dDice(atlasset,validationset,DCscores,parameter_file,threshold1,threshold2,modelnr)
+    val_scores = validationscores(validationset,finalmasks)
     writevalidationfile(validationset, finalmasks, val_scores, modelnr)
     return val_scores
 
 def runmodel(modelnr,unknownset):
     print("Running model " + str(modelnr) + '\n')
-    atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting = readmodelfile(modelnr)
+    atlasset, optimizeset, parameter_file, DCscores, threshold1, threshold2, sliceweighting, MIweighting = readmodelfile(modelnr)
 
     for i in unknownset:
         for j in atlasset:
@@ -467,10 +645,13 @@ def runmodel(modelnr,unknownset):
         for j in optimizeset:
             if i == j: print("Patient p"+str(i)+" is not unknown: it is part of the optimizeset. Are you sure you entered the correct patients?")
 
-    if sliceweighting:
-        finalmasks = getfinalmasks2dDice(atlasset,optimizeset,unknownset,DCscores,parameter_file,threshold1,threshold2)
+    if MIweighting:
+        finalmasks = getfinalmasksMI(atlasset,unknownset,parameter_file,threshold1,threshold2,modelnr)
     else:
-        finalmasks = getfinalmasks3dDice(atlasset,optimizeset,unknownset,DCscores,parameter_file,threshold1,threshold2)
+        if sliceweighting:
+            finalmasks = getfinalmasks2dDice(atlasset,unknownset,DCscores,parameter_file,threshold1,threshold2,modelnr)
+        else:
+            finalmasks = getfinalmasks3dDice(atlasset,unknownset,DCscores,parameter_file,threshold1,threshold2,modelnr)
         
     outputnr = findnewmodelresultnr()
     output_dir = f'modelresults{outputnr}'
@@ -478,36 +659,12 @@ def runmodel(modelnr,unknownset):
         os.mkdir(output_dir)
 
     print("Saving results in folder " + output_dir)    
+
     for i in range(len(unknownset)):
         filename = "maskp"+str(unknownset[i])+'.mhd'
-        image = sitk.GetImageFromArray(finalmasks[i])
-        sitk.WriteImage(image,os.path.join(output_dir, filename))
-        
-        original_file = os.path.join(data_path,f"p{unknownset[i]}\mr_bffe.mhd")
-        with open(original_file,'r') as f:
-            or_data_lines = f.readlines()
-        with open(os.path.join(output_dir, filename),'r') as f:
-            new_data_lines = f.readlines()
-                
-        with open(os.path.join(output_dir, filename), 'w') as f:
-            for j, line in enumerate(new_data_lines):
-                if line[:6] == "Offset":
-                    for or_line in or_data_lines:
-                        if or_line[:6] == "Offset":
-                            f.writelines(or_line)
-                elif line[:16] == "CenterOfRotation":
-                    for or_line in or_data_lines:
-                        if or_line[:16] == "CenterOfRotation":
-                            f.writelines(or_line)
-                elif line[:14] == "ElementSpacing":
-                    for or_line in or_data_lines:
-                        if or_line[:14] == "ElementSpacing":
-                            f.writelines(or_line)       
-                elif line[:21] == "AnatomicalOrientation":
-                    for or_line in or_data_lines:
-                        if or_line[:21] == "AnatomicalOrientation":
-                            f.writelines(or_line)   
-                else: f.writelines(line)
+        output_path = os.path.join(output_dir, filename)
+        mask = finalmasks[i]
+        savemask(mask, output_path, unknownset[i])
 
     with open(os.path.join(output_dir, "description.txt"), 'w') as f:
         f.writelines("This folder contains the results of model "+str(modelnr))

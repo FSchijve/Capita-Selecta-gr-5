@@ -1,7 +1,7 @@
 from transform import transform2d, transform3d
 from visualize import visualize2d, visualize3d
 from register import register2d, register3d
-from combineatlasses import createmodel2d, createmodel3d, validatemodel, runmodel
+from combineatlasses import createmodel2d, createmodel3d, createmodelMI, validatemodel, runmodel
 
 movingnr = 120
 fixednr = 125
@@ -30,9 +30,9 @@ optimizeset = patients[0:10]
 validationset = patients[10:15]
 
 #For testing
-#atlasset = [102,107]
-#optimizeset = [116,117]
-#validationset = [127,128]
+#atlasset = [102]
+#optimizeset = [102]
+#validationset = [107]
 
 threshold1 = 0.0 #The performance scores of the atlas images/slices
 threshold2 = 0.5 #The amount of cumulative (normalized) performance needed to activate a pixel
@@ -40,8 +40,9 @@ threshold2 = 0.5 #The amount of cumulative (normalized) performance needed to ac
 #model creation commands
 #modelnr = createmodel3d(atlasset,optimizeset,parameter_file,threshold1,threshold2)
 #modelnr = createmodel2d(atlasset,optimizeset,parameter_file,threshold1,threshold2)
+#modelnr = createmodelMI(atlasset,parameter_file,threshold1,threshold2)
 
-modelnr = 5
+modelnr = 7
 
 #model validation command
 validatemodel(modelnr,validationset)
