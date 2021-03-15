@@ -15,8 +15,8 @@ from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.image import load_img
 
 img_size = (256,256)
-num_classes = 3
-batch_size = 12
+# num_classes = 3
+# batch_size = 12
 input_dir = "imagesTr"
 target_dir = "labelsTr"
 
@@ -79,8 +79,6 @@ x_train = x_train.reshape(numberofimages,256,256,1)
 y_train = y_train.reshape(numberofimages,256,256,1)
 y_val = y_val.reshape(15,256,256,1)
 x_val = x_val.reshape(15,256,256,1)
-
-
 
 print('input array type:', type(input_arrays_list))
 print('target array type:', type(target_arrays_list))
@@ -179,7 +177,7 @@ model.summary()
 model.compile(loss=categorical_crossentropy, optimizer=Adam(), metrics=['accuracy'])
 
 model.fit(x_train, y_train,
-          batch_size=128,
+          batch_size=32,
           epochs=12,
           verbose=1,
           validation_data=(x_val, y_val))
