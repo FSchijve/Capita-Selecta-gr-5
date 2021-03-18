@@ -239,8 +239,8 @@ for number in number_list:
         List_img5[slice] = img_bspline
         List_mask5[slice] = mask_bspline
         
-    List_images.extend([List_img1, List_img2, List_img3, List_img4, List_img5])
-    List_masks.extend([List_mask1, List_mask2, List_mask3, List_mask4, List_mask5])
+    List_images.extend([List_img0, List_img1, List_img2, List_img3, List_img4, List_img5])
+    List_masks.extend([List_mask0, List_mask1, List_mask2, List_mask3, List_mask4, List_mask5])
 
 
 image_plot = List_images[5][8]
