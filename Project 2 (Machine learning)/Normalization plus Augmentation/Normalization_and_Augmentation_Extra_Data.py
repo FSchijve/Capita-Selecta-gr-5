@@ -164,7 +164,7 @@ data_path = r"C:\Users\s160518\Documents\CSMIA Segmentation\Task05_Prostate"
 number_list = [0, 1, 2, 4, 6, 7, 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
 
 # number_list SHORT, this list should be used just to check the code for the first 3 patients
-number_list = [0,1,2]
+#number_list = [0,1,2]
 
 # number_list COMPLETE, this list should be used in the end for all the patients
 #number_list = [0, 1, 2, 4, 6, 7, 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
@@ -183,19 +183,19 @@ for number in number_list:
     mask_path = os.path.join(data_path,f"labelsTr\prostate_{number}.nii.gz"); 
     img_path  = os.path.join(data_path,f"imagesTr\prostate_{number}.nii.gz")
     
-    List_img0 = slice_list[number] * [0]
-    List_img1 = slice_list[number] * [0]
-    List_img2 = slice_list[number] * [0]
-    List_img3 = slice_list[number] * [0]
-    List_img4 = slice_list[number] * [0]
-    List_img5 = slice_list[number] * [0]
+    List_img0 = slice_list[i] * [0]
+    List_img1 = slice_list[i] * [0]
+    List_img2 = slice_list[i] * [0]
+    List_img3 = slice_list[i] * [0]
+    List_img4 = slice_list[i] * [0]
+    List_img5 = slice_list[i] * [0]
     
-    List_mask0 = slice_list[number] * [0]
-    List_mask1 = slice_list[number] * [0]
-    List_mask2 = slice_list[number] * [0]
-    List_mask3 = slice_list[number] * [0]
-    List_mask4 = slice_list[number] * [0]
-    List_mask5 = slice_list[number] * [0]
+    List_mask0 = slice_list[i] * [0]
+    List_mask1 = slice_list[i] * [0]
+    List_mask2 = slice_list[i] * [0]
+    List_mask3 = slice_list[i] * [0]
+    List_mask4 = slice_list[i] * [0]
+    List_mask5 = slice_list[i] * [0]
     # Loop the slices 
     #for slice in range(slice_list[i]):
     for slice in range(slice_list[i]):
