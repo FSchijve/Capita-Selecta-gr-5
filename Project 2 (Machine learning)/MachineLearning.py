@@ -4,26 +4,17 @@ import numpy as np
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import torchvision
-import tensorflow as tf
 import random
-import difflib
-import scipy.spatial
-from glob import glob
-import SimpleITK as sitk
-import matplotlib.pyplot as plt
 import nibabel as nib
 import gryds
-import random
-from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
-from keras.losses import categorical_crossentropy, MeanSquaredError
-from keras.models import Sequential
+from keras.losses import MeanSquaredError
 from keras.optimizers import Adam
 import keras
-from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.preprocessing.image import load_img
 import math
 import cv2
+from save_slices import Dataset, XY_dataset
+
 
 #%%
 
@@ -175,85 +166,6 @@ def Bspline_and_Affine_flipped(img, mask):
     transformed_mask = flipped_mask.cpu().detach().numpy()
     
     return transformed_image, transformed_mask
-    
-#%%
-
-class Dataset():
-    # Single dataset with slices
-    def __init__(self, image_paths = []):
-        self.image_paths = image_paths.copy()
-        
-    def __len__(self):
-        return len(self.image_paths)
-    
-    def __getitem__(self, idx):
-        return np.load(self.image_paths[idx])
-    
-    def __setitem__(self, idx, new_path):
-        self.image_paths[idx] = new_path
-            
-    def getpath(self, idx):
-    # Get the path of a certain slice
-        return self.image_paths[idx]
-    
-    def addimage(self, image_path):
-    # Add a single slice to the dataset
-        self.image_paths.append(image_path)
-
-    def addimages(self, image_paths):
-    # Add a list of slices to the dataset
-        for image_path in image_paths:
-            self.image_paths.append(image_path)
-
-    def adddataset(self, dataset):
-    # Add a dataset to the dataset
-        for i in range(len(dataset)):
-            self.image_paths.append(dataset.getpath(i))
-
-    def adddatasets(self, datasets):
-    # Add a list of datasets to the dataset
-        for i in range(len(datasets)):
-            for j in range(len(datasets[i])):
-                self.image_paths.append(datasets[i].getpath(j))
-    
-    def shuffle(self, seed):
-    # Shuffle the dataset
-        random.Random(seed).shuffle(self.image_paths)
-
-class XY_dataset():
-    # Combined dataset (images + masks)
-    def __init__(self, x_set, y_set, batch_size = 1, end_evaluation = False):
-        if len(x_set) != len(y_set):
-            raise Exception("Length of x_set is not the same as length of y_set.")
-        self.x_set, self.y_set = x_set, y_set
-        self.n = 0
-        self.max = len(x_set)-1
-        self.batch_size = batch_size
-        self.end_evaluation = end_evaluation
-        
-    def __iter__(self):
-        return self
-    
-    def __next__(self):
-        
-        if self.n + self.batch_size > self.max+1:
-            self.n = 0
-            if self.end_evaluation:
-                raise StopIteration
-
-        #print(f"\nRead {self.n} - {self.n+self.batch_size}")
-        
-        x_array, y_array = [], []
-        for i in range(self.n,self.n+self.batch_size):
-            x_array.append(self.x_set[i])
-            y_array.append(self.y_set[i])
-    
-        self.n += self.batch_size
-
-        return (np.array(x_array),np.array(y_array))
-
-    def __len__(self):
-        return len(self.x_set)
                
 #%%
 
@@ -316,7 +228,7 @@ def get_model(img_size, num_classes):
 
 #%%
 #Relevant variables
-batch_size = 10
+batch_size = 35
 img_size = (256,256)
 num_classes=2
 
@@ -331,7 +243,7 @@ if not os.path.isdir(processed_data_path):
 number_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
 
 # number_list SHORT, this list should be used just to check the code for the first 3 patients
-number_list = number_list[:1]                
+number_list = number_list[:5]                
 #%%
 
 i = 0
@@ -341,124 +253,10 @@ List_masks = Dataset()
 list_val_images = Dataset()
 list_val_masks = Dataset()
 
-# loop the patients
-#for number in number_list:
-for number in number_list:   
-    mask_path = os.path.join(data_path,f"labelsTr\prostate_{number}.nii.gz"); 
-    img_path  = os.path.join(data_path,f"imagesTr\prostate_{number}.nii.gz")
-    
-    List_img0 = Dataset()
-    List_img1 = Dataset()
-    List_img2 = Dataset()
-    List_img3 = Dataset()
-    List_img4 = Dataset()
-    List_img5 = Dataset()
-    
-    List_mask0 = Dataset()
-    List_mask1 = Dataset()
-    List_mask2 = Dataset()
-    List_mask3 = Dataset()
-    List_mask4 = Dataset()
-    List_mask5 = Dataset()
-
-    nr_slices = nib.load(mask_path).get_fdata().shape[2]
-
-    # Loop the slices 
-#    for slice in range(nr_slices):
-    for slice in range(8):
-        mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
-        img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice,0]) 
-        print ('Patient',number,'slice',slice)
-        img = normalize_img(img)
-        mask = normalize_mask(mask)
-        
-        img = np.reshape(img, (256,256,1))
-        mask = np.reshape(mask, (256,256,1))
-
-        # Original image
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img)
-        List_img0.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask)
-        List_mask0.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        
-        # Bspline and Affine and flipped transformation
-        img_bspline_affine_flipped, mask_bspline_affine_flipped = Bspline_and_Affine_flipped(img, mask)
-        img_bspline_affine_flipped = np.reshape(img_bspline_affine_flipped, (256,256,1))
-        mask_bspline_affine_flipped = np.reshape(mask_bspline_affine_flipped, (256,256,1))
-        
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine_flipped)
-        List_img1.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine_flipped)
-        List_mask1.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-                
-        # Bspline and Affine and flipped transformation second time
-        img_bspline_affine_flipped1, mask_bspline_affine_flipped1 = Bspline_and_Affine_flipped(img, mask)
-        img_bspline_affine_flipped1 = np.reshape(img_bspline_affine_flipped1, (256,256,1))
-        mask_bspline_affine_flipped1 = np.reshape(mask_bspline_affine_flipped1, (256,256,1))
-        
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine_flipped1)
-        List_img2.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine_flipped1)
-        List_mask2.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-        
-
-        # Bspline and Affine transformation
-        img_bspline_affine, mask_bspline_affine = Bspline_and_Affine(img, mask)
-        img_bspline_affine = np.reshape(img_bspline_affine, (256,256,1))
-        mask_bspline_affine = np.reshape(mask_bspline_affine, (256,256,1))
-        
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine)
-        List_img3.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine)
-        List_mask3.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        
-        # Bspline and Affine transformation second time
-        img_bspline_affine1, mask_bspline_affine1 = Bspline_and_Affine(img, mask)
-        img_bspline_affine1 = np.reshape(img_bspline_affine1, (256,256,1))
-        mask_bspline_affine1 = np.reshape(mask_bspline_affine1, (256,256,1))
-        
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine1)
-        List_img4.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine1)
-        List_mask4.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-        
-        
-        # Bspline transformation
-        img_bspline, mask_bspline = Bspline(img,mask)
-        img_bspline = np.reshape(img_bspline, (256,256,1))
-        mask_bspline = np.reshape(mask_bspline, (256,256,1))
-        
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline)
-        List_img5.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-
-        np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline)
-        List_mask5.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-        image_nr += 1
-        
-    List_images.adddatasets([List_img1,List_img2,List_img3,List_img4,List_img5])
-    List_masks.adddatasets([List_mask1,List_mask2,List_mask3,List_mask4,List_mask5])
-    list_val_images.adddataset(List_img0)
-    list_val_masks.adddataset(List_mask0)
-    i += 1
+List_images.read(os.path.join(processed_data_path,"List_images.txt"))
+List_masks.read(os.path.join(processed_data_path,"List_masks.txt"))
+list_val_images.read(os.path.join(processed_data_path,"list_val_images.txt"))
+list_val_masks.read(os.path.join(processed_data_path,"list_val_masks.txt"))
 
 x_train = List_images
 y_train = List_masks
@@ -507,7 +305,6 @@ model = get_model(img_size, num_classes)
 
 model.compile(loss=MeanSquaredError(), optimizer=Adam(), metrics=['accuracy'])
 
-print(len(val_set))
 model.fit(train_set,
           batch_size=batch_size,
           epochs=1,
