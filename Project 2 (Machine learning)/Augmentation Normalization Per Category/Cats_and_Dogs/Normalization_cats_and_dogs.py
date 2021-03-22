@@ -68,7 +68,7 @@ target_img_paths.remove('annotations/trimaps/Egyptian_Mau_191.png')
 List_images = []
 List_masks = []
 runner = 0
-for i in range(100):
+for i in range(len(input_img_paths)):
     runner = runner+1
     print(runner)
     img = imageio.imread(input_img_paths[i])
@@ -78,7 +78,7 @@ for i in range(100):
     if len(img.shape)>2:
         img = img[:,:,0]
     
-    # removing images that are very big, since cropping them to 256x256 gives very small parts of cats/dogs
+    # removing images that are very big, since resizing them to 128 x 128 will maybe get very bad
     if img.shape[0]>128:
         if img.shape[0]<512:
             if img.shape[1]>128:
