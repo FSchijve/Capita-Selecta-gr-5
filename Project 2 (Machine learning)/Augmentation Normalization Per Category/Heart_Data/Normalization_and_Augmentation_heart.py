@@ -151,18 +151,17 @@ def Bspline_and_Affine_flipped(img, mask):
 #%%
 
 # Opening external dataset
-#data_path = (r'C:\Users\darja\Documents\TuE\elastix-5.0.1-win64\TrainingData\Task05_Prostate')
 data_path = r"C:\Users\s160518\Documents\CSMIA Segmentation\Task02_Heart\Task02_Heart"
 
 
 # number_list SHORT, this list should be used just to check the code for the first 3 patients
-#number_list = [3, 4, 5]
+number_list = [3, 4, 5]
 
 # number_list COMPLETE, this list should be used in the end for all the patients
-number_list = [3, 4, 5, 7, 9, 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 29, 30]
+#number_list = [3, 4, 5, 7, 9, 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 29, 30]
 
 # List of the numbers of slices per patient.   
-slice_list = [130, 110, 120, 130, 100, 120, 120, 120, 90, 120, 122, 100, 110, 100, 110, 110, 120, 120, 120, 110]
+slice_list = [130, 110, 120, 130, 100, 120, 120, 120, 90, 120, 122, 100, 110, 100, 110, 110, 120, 120, 109, 110]
 
 i = -1
 List_images = []
@@ -191,8 +190,8 @@ for number in number_list:
     # Loop the slices 
     #for slice in range(slice_list[i]):
     for slice in range(slice_list[i]):
-        mask = np.rot90(nib.load(mask_path).get_data()[:,:,slice])
-        img  = np.rot90(nib.load(img_path).get_data()[:,:,slice]) 
+        mask = (nib.load(mask_path).get_data()[:,:,slice])
+        img  = (nib.load(img_path).get_data()[:,:,slice]) 
         print ('Patient',number,'slice',slice)
         img = normalize_img(img)
         mask = normalize_mask(mask)
@@ -232,11 +231,11 @@ for number in number_list:
         List_mask5[slice] = mask_bspline
         
     List_images.extend([List_img0, List_img1, List_img2, List_img3, List_img4, List_img5])
-    List_masks.extend([List_img0, List_mask1, List_mask2, List_mask3, List_mask4, List_mask5])
+    List_masks.extend([List_mask0, List_mask1, List_mask2, List_mask3, List_mask4, List_mask5])
 
 
-image_plot = List_images[0][1]
-mask_plot = List_masks[0][1]
+image_plot = List_images[5][64]
+mask_plot = List_masks[5][64]
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 ax[0].imshow(image_plot, cmap='gray')
