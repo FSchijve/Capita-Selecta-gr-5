@@ -23,13 +23,14 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.image import load_img
 import math
+import cv2
 
 #%%
 
 # Normalization
 
 def normalize_img(img): 
-    Enable when normalizing all values between 0 and 1:
+    #Enable when normalizing all values between 0 and 1:
     #img=img/np.amax(img)
     
     # Enable when normalizing mean 0 std 1:
