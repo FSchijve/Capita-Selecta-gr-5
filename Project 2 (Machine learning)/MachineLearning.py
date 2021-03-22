@@ -29,27 +29,20 @@ import math
 # Normalization
 
 def normalize_img(img): 
-    # Enable when normalizing all values between 0 and 1:
-    img=img/np.amax(img)
+    Enable when normalizing all values between 0 and 1:
+    #img=img/np.amax(img)
     
     # Enable when normalizing mean 0 std 1:
-    #img = (img - np.mean(img))/np.std(img)
+    img = (img - np.mean(img))/np.std(img)
     
-    # Cropping images into size 256 x 256
-    start_x= int(img.shape[0]/2-128)
-    stop_x = int(img.shape[0]/2+128)
-    start_y= int(img.shape[1]/2-128)
-    stop_y = int(img.shape[1]/2+128)
-    img = img[start_x:stop_x,start_y:stop_y]
+    # resizing images to 128 x 128
+    img = cv2.resize(img, (128,128), interpolation = cv2.INTER_CUBIC)
     return img
 
 def normalize_mask(mask): 
-    #mask[mask>1]=1
-    start_x= int(mask.shape[0]/2-128)
-    stop_x = int(mask.shape[0]/2+128)
-    start_y= int(mask.shape[1]/2-128)
-    stop_y = int(mask.shape[1]/2+128)
-    mask  = mask[start_x:stop_x,start_y:stop_y]
+    mask[mask>1]=1
+    # resizing masks to 128 x 128
+    mask = cv2.resize(mask, (128,128), interpolation = cv2.INTER_NEAREST)
     return mask
 
 #%%
