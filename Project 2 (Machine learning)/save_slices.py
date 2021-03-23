@@ -1,10 +1,31 @@
 import torch
 import numpy as np
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import torchvision
 import random
 import nibabel as nib
 import gryds
+import cv2
+
+#%%
+# Standard variables
+
+# Opening external dataset
+data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
+processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
+
+
+# Patient list COMPLETE, this list should be used in the end for all the patients
+patient_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
+
+#%%
+# Variables to change
+
+# Patient list SHORT, this list should be used just to check the code for the first few patients
+patient_list = patient_list[:2]
+
+image_side = 128
 
 #%%
 
@@ -12,34 +33,29 @@ import gryds
 
 def normalize_img(img): 
     # Enable when normalizing all values between 0 and 1:
-    img=img/np.amax(img)
+    # img=img/np.amax(img)
     
     # Enable when normalizing mean 0 std 1:
-    #img = (img - np.mean(img))/np.std(img)
+    img = (img - np.mean(img))/np.std(img)
     
-    # Cropping images into size 256 x 256
-    start_x= int(img.shape[0]/2-128)
-    stop_x = int(img.shape[0]/2+128)
-    start_y= int(img.shape[1]/2-128)
-    stop_y = int(img.shape[1]/2+128)
-    img = img[start_x:stop_x,start_y:stop_y]
+    # resizing images to image_side x image_side
+    img = cv2.resize(img, (image_side,image_side), interpolation = cv2.INTER_CUBIC)
     return img
 
 def normalize_mask(mask): 
-    #mask[mask>1]=1
-    start_x= int(mask.shape[0]/2-128)
-    stop_x = int(mask.shape[0]/2+128)
-    start_y= int(mask.shape[1]/2-128)
-    stop_y = int(mask.shape[1]/2+128)
-    mask  = mask[start_x:stop_x,start_y:stop_y]
+    mask[mask>1]=1
+    # resizing masks to 128 x 128
+    mask = cv2.resize(mask, (image_side, image_side), interpolation = cv2.INTER_NEAREST)
     return mask
 
+def normalize(img, mask):
+    return normalize_img(img), normalize_mask(mask)
+
 #%%
+
+# Transformations
     
 def Bspline(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
     # Define a random 3x3 B-spline grid for a 2D image:
     random_grid = np.random.rand(2, 3, 3)
     random_grid -= 0.5
@@ -59,9 +75,6 @@ def Bspline(img, mask):
     return transformed_image, transformed_mask
 
 def Affine(img,mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
     # Define a scaling transformation object
     angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
     center_point_x = 0.1*random.randint(3,7)
@@ -80,10 +93,7 @@ def Affine(img,mask):
     transformed_mask = interpolator_mask.transform(affine)
     return transformed_image, transformed_mask
 
-def flip(img, mask): # Check if it properly works
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
+def flip(img, mask): # TODO: Check if it properly works
     img = torch.from_numpy(img.copy())
     mask = torch.from_numpy(mask.copy())
     flipped_img = torchvision.transforms.functional.hflip(img = img) # change to .vflip for vertical flip
@@ -93,9 +103,6 @@ def flip(img, mask): # Check if it properly works
     return flipped_img, flipped_mask
 
 def Bspline_and_Affine(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
     # Define a scaling transformation object
     angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
     center_point_x = 0.1*random.randint(3,7)
@@ -125,9 +132,6 @@ def Bspline_and_Affine(img, mask):
     return transformed_image, transformed_mask
     
 def Bspline_and_Affine_flipped(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
     # Define a scaling transformation object
     angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
     center_point_x = 0.1*random.randint(3,7)
@@ -166,10 +170,14 @@ def Bspline_and_Affine_flipped(img, mask):
 
 #%%
 
+# Dataset classes
+
 class Dataset():
     # Single dataset with slices
-    def __init__(self, image_paths = []):
+    def __init__(self, image_paths = [], filename = None):
         self.image_paths = image_paths.copy()
+        if filename != None:
+            self.read(filename)
         
     def __len__(self):
         return len(self.image_paths)
@@ -209,11 +217,13 @@ class Dataset():
         random.Random(seed).shuffle(self.image_paths)
         
     def write(self, filename):
+    # Write the dataset to a file
         with open(filename,'w') as f:
             for image_path in self.image_paths:
                 f.writelines(image_path+'\n')
         
     def read(self, filename):
+    # Add slices from a dataset file
         with open(filename,'r') as f:
             lines = f.readlines()
 
@@ -221,83 +231,92 @@ class Dataset():
             self.image_paths.append(line[:-1])            
         
 class XY_dataset():
-    # Combined dataset (images + masks)
-    def __init__(self, x_set, y_set, batch_size = 1, end_evaluation = False):
+    # Combined dataset (x = images, y = masks)
+    def __init__(self, x_set, y_set, batch_size = 1, end_evaluation = False, verbose = False):
         if len(x_set) != len(y_set):
             raise Exception("Length of x_set is not the same as length of y_set.")
         self.x_set, self.y_set = x_set, y_set
         self.n = 0
-        self.max = len(x_set)-1
+        self.max = len(x_set)
         self.batch_size = batch_size
         self.end_evaluation = end_evaluation
+        self.verbose = verbose
         
     def __iter__(self):
         return self
     
     def __next__(self):
-        
-        if self.n + self.batch_size > self.max+1:
-            self.n = 0
-            if self.end_evaluation:
-                raise StopIteration
-
-        #print(f"\nRead {self.n} - {self.n+self.batch_size}")
+        # Return next batch        
         
         x_array, y_array = [], []
-        for i in range(self.n,self.n+self.batch_size):
-            x_array.append(self.x_set[i])
-            y_array.append(self.y_set[i])
+        for _ in range(0,self.batch_size):
+            if self.verbose: print(f"Read slice {self.n}")
+                    
+            x_array.append(self.x_set[self.n])
+            y_array.append(self.y_set[self.n])
     
-        self.n += self.batch_size
+            self.n += 1
+            if self.n >= self.max:
+                self.n = 0
+                if self.end_evaluation:
+                    raise StopIteration
 
         return (np.array(x_array),np.array(y_array))
 
     def __len__(self):
         return len(self.x_set)
-
-
-    #%%
-if __name__ == '__main__':
-    # Opening external dataset
-    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
-    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
     
+    def set_end_evaluation(self, bool):
+        self.end_evaluation = bool
+
+
+#%%
+    
+def process_image(img, mask, dataset_img, dataset_mask, image_nr, function = None):
+    # Transform, reshape, save and add to dataset
+
+    if function == None:
+        img_processed, mask_processed = img, mask
+    else:
+        img_processed, mask_processed = function(img, mask)
+
+    img_processed = np.reshape(img_processed, (image_side,image_side,1))    
+    np.save(os.path.join(processed_data_path,f"slice_{image_nr}.npy"),img_processed)
+    dataset_img.addimage(os.path.join(processed_data_path,f"slice_{image_nr}.npy"))
+    image_nr += 1
+
+    mask_processed = np.reshape(mask_processed, (image_side,image_side,1))    
+    np.save(os.path.join(processed_data_path,f"slice_{image_nr}.npy"),mask_processed)
+    dataset_mask.addimage(os.path.join(processed_data_path,f"slice_{image_nr}.npy"))
+    image_nr += 1    
+
+    return image_nr
+
+#%%
+
+# Do augmentations and save them
+
+if __name__ == '__main__':
     if not os.path.isdir(processed_data_path):
         os.mkdir(processed_data_path)
-    
-    # number_list COMPLETE, this list should be used in the end for all the patients
-    number_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
-    
-    # number_list SHORT, this list should be used just to check the code for the first 3 patients
-    number_list = number_list[:2]                
-    #%%
-    
-    i = 0
+
     image_nr = 0
-    List_images = Dataset()
-    List_masks = Dataset()
-    list_val_images = Dataset()
-    list_val_masks = Dataset()
+    train_images = Dataset()
+    train_masks = Dataset()
+    val_images = Dataset()
+    val_masks = Dataset()
     
-    # loop the patients
-    #for number in number_list:
-    for number in number_list:   
-        mask_path = os.path.join(data_path,f"labelsTr\prostate_{number}.nii.gz"); 
-        img_path  = os.path.join(data_path,f"imagesTr\prostate_{number}.nii.gz")
+    # loop over the patients
+    for patient_nr in patient_list:   
+        mask_path = os.path.join(data_path,f"labelsTr\prostate_{patient_nr}.nii.gz"); 
+        img_path  = os.path.join(data_path,f"imagesTr\prostate_{patient_nr}.nii.gz")
         
-        List_img0 = Dataset()
-        List_img1 = Dataset()
-        List_img2 = Dataset()
-        List_img3 = Dataset()
-        List_img4 = Dataset()
-        List_img5 = Dataset()
-        
-        List_mask0 = Dataset()
-        List_mask1 = Dataset()
-        List_mask2 = Dataset()
-        List_mask3 = Dataset()
-        List_mask4 = Dataset()
-        List_mask5 = Dataset()
+        orig_img, orig_mask = Dataset(), Dataset()
+        baf0_img, baf0_mask = Dataset(), Dataset()
+        baf1_img, baf1_mask = Dataset(), Dataset()
+        ba0_img, ba0_mask = Dataset(), Dataset()
+        ba1_img, ba1_mask = Dataset(), Dataset()
+        b_img, b_mask = Dataset(), Dataset()
     
         nr_slices = nib.load(mask_path).get_fdata().shape[2]
     
@@ -305,99 +324,23 @@ if __name__ == '__main__':
         for slice in range(nr_slices):
             mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
             img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice,0]) 
-            print ('Patient',number,'slice',slice)
-            img = normalize_img(img)
-            mask = normalize_mask(mask)
-            
-            img = np.reshape(img, (256,256,1))
-            mask = np.reshape(mask, (256,256,1))
+            print ('Patient',patient_nr,'slice',slice)
+
+            # Process images in different ways
+            img, mask = normalize(img, mask)
+            image_nr = process_image(img, mask, orig_img, orig_mask, image_nr)
+            image_nr = process_image(img, mask, baf0_img, baf0_mask, image_nr, Bspline_and_Affine_flipped)
+            image_nr = process_image(img, mask, baf1_img, baf1_mask, image_nr, Bspline_and_Affine_flipped)
+            image_nr = process_image(img, mask, ba0_img, ba0_mask, image_nr, Bspline_and_Affine)
+            image_nr = process_image(img, mask, ba1_img, ba1_mask, image_nr, Bspline_and_Affine)
+            image_nr = process_image(img, mask, b_img, b_mask, image_nr, Bspline)
+
+        train_images.adddatasets([baf0_img,baf1_img,ba0_img,ba1_img,b_img])
+        train_masks.adddatasets([baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
+        val_images.adddataset(orig_img)
+        val_masks.adddataset(orig_mask)    
     
-            # Original image
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img)
-            List_img0.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask)
-            List_mask0.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            
-            # Bspline and Affine and flipped transformation
-            img_bspline_affine_flipped, mask_bspline_affine_flipped = Bspline_and_Affine_flipped(img, mask)
-            img_bspline_affine_flipped = np.reshape(img_bspline_affine_flipped, (256,256,1))
-            mask_bspline_affine_flipped = np.reshape(mask_bspline_affine_flipped, (256,256,1))
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine_flipped)
-            List_img1.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine_flipped)
-            List_mask1.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-                    
-            # Bspline and Affine and flipped transformation second time
-            img_bspline_affine_flipped1, mask_bspline_affine_flipped1 = Bspline_and_Affine_flipped(img, mask)
-            img_bspline_affine_flipped1 = np.reshape(img_bspline_affine_flipped1, (256,256,1))
-            mask_bspline_affine_flipped1 = np.reshape(mask_bspline_affine_flipped1, (256,256,1))
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine_flipped1)
-            List_img2.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine_flipped1)
-            List_mask2.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-            
-    
-            # Bspline and Affine transformation
-            img_bspline_affine, mask_bspline_affine = Bspline_and_Affine(img, mask)
-            img_bspline_affine = np.reshape(img_bspline_affine, (256,256,1))
-            mask_bspline_affine = np.reshape(mask_bspline_affine, (256,256,1))
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine)
-            List_img3.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine)
-            List_mask3.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            
-            # Bspline and Affine transformation second time
-            img_bspline_affine1, mask_bspline_affine1 = Bspline_and_Affine(img, mask)
-            img_bspline_affine1 = np.reshape(img_bspline_affine1, (256,256,1))
-            mask_bspline_affine1 = np.reshape(mask_bspline_affine1, (256,256,1))
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline_affine1)
-            List_img4.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline_affine1)
-            List_mask4.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-            
-            
-            # Bspline transformation
-            img_bspline, mask_bspline = Bspline(img,mask)
-            img_bspline = np.reshape(img_bspline, (256,256,1))
-            mask_bspline = np.reshape(mask_bspline, (256,256,1))
-            
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),img_bspline)
-            List_img5.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-    
-            np.save(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"),mask_bspline)
-            List_mask5.addimage(os.path.join(processed_data_path,f"slice_{str(image_nr)}.npy"))
-            image_nr += 1
-            
-        List_images.adddatasets([List_img1,List_img2,List_img3,List_img4,List_img5])
-        List_masks.adddatasets([List_mask1,List_mask2,List_mask3,List_mask4,List_mask5])
-        list_val_images.adddataset(List_img0)
-        list_val_masks.adddataset(List_mask0)    
-        i += 1
-    
-    List_images.write(os.path.join(processed_data_path,"List_images.txt"))
-    List_masks.write(os.path.join(processed_data_path,"List_masks.txt"))
-    list_val_images.write(os.path.join(processed_data_path,"list_val_images.txt"))
-    list_val_masks.write(os.path.join(processed_data_path,"list_val_masks.txt"))
+    train_images.write(os.path.join(processed_data_path,"train_images.txt"))
+    train_masks.write(os.path.join(processed_data_path,"train_masks.txt"))
+    val_images.write(os.path.join(processed_data_path,"val_images.txt"))
+    val_masks.write(os.path.join(processed_data_path,"val_masks.txt"))

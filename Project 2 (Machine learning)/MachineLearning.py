@@ -1,172 +1,28 @@
 # First, we import PyTorch and NumPy
-import torch
-import numpy as np
 import os
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-import torchvision
-import random
-import nibabel as nib
-import gryds
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras.losses import MeanSquaredError
 from keras.optimizers import Adam
 import keras
 from tensorflow.keras import layers
 import math
-import cv2
 from save_slices import Dataset, XY_dataset
 
+#%%
+# Standard variables
+
+# Preprocessed dataset
+processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
+
+# Number of classes
+num_classes = 2
 
 #%%
+# Variables to change
 
-# Normalization
+image_side = 128
+batch_size = 1
 
-def normalize_img(img): 
-    #Enable when normalizing all values between 0 and 1:
-    #img=img/np.amax(img)
-    
-    # Enable when normalizing mean 0 std 1:
-    img = (img - np.mean(img))/np.std(img)
-    
-    # resizing images to 128 x 128
-    img = cv2.resize(img, (128,128), interpolation = cv2.INTER_CUBIC)
-    return img
-
-def normalize_mask(mask): 
-    mask[mask>1]=1
-    # resizing masks to 128 x 128
-    mask = cv2.resize(mask, (128,128), interpolation = cv2.INTER_NEAREST)
-    return mask
-
-#%%
-    
-def Bspline(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
-    # Define a random 3x3 B-spline grid for a 2D image:
-    random_grid = np.random.rand(2, 3, 3)
-    random_grid -= 0.5
-    random_grid /= 5
-
-    # Define a B-spline transformation object
-    bspline = gryds.BSplineTransformation(random_grid)
-
-    # Define an interpolator object for the image:
-    interpolator_img = gryds.Interpolator(img)
-    interpolator_mask = gryds.Interpolator(mask)
-    
-    # Transform the image using the B-spline transformation
-    transformed_image = interpolator_img.transform(bspline)
-    transformed_mask = interpolator_mask.transform(bspline)
-
-    return transformed_image, transformed_mask
-
-def Affine(img,mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
-    # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
-    affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
-    
-    # Define an interpolator object for the image:
-    interpolator_img = gryds.Interpolator(img)
-    interpolator_mask = gryds.Interpolator(mask)
-    
-    # Transform image and mask using Affine transformation
-    transformed_image = interpolator_img.transform(affine)
-    transformed_mask = interpolator_mask.transform(affine)
-    return transformed_image, transformed_mask
-
-def flip(img, mask): # Check if it properly works
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
-    img = torch.from_numpy(img.copy())
-    mask = torch.from_numpy(mask.copy())
-    flipped_img = torchvision.transforms.functional.hflip(img = img) # change to .vflip for vertical flip
-    flipped_mask = torchvision.transforms.functional.hflip(img = mask)
-    flipped_img = flipped_img.cpu().detach().numpy()
-    flipped_mask = flipped_mask.cpu().detach().numpy()
-    return flipped_img, flipped_mask
-
-def Bspline_and_Affine(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
-    # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
-    affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
-    
-    # Define a random 3x3 B-spline grid for a 2D image:
-    random_grid = np.random.rand(2, 3, 3)
-    random_grid -= 0.5
-    random_grid /= 5
-    
-    # Define a B-spline transformation object
-    bspline = gryds.BSplineTransformation(random_grid)
-    
-    # Define an interpolator object for the image:
-    interpolator_img = gryds.Interpolator(img)
-    interpolator_mask = gryds.Interpolator(mask)
-    
-    # Transform the image using both transformations. The B-spline is applied to the
-    # sampling grid first, and the affine transformation second. From the
-    # perspective of the image itself, the order will seem reversed (!).
-    transformed_image = interpolator_img.transform(bspline, affine)
-    transformed_mask = interpolator_mask.transform(bspline, affine)
-    return transformed_image, transformed_mask
-    
-def Bspline_and_Affine_flipped(img, mask):
-    img = img[:,:,0]
-    mask = mask[:,:,0]
-
-    # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
-    affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
-    
-    # Define a random 3x3 B-spline grid for a 2D image:
-    random_grid = np.random.rand(2, 3, 3)
-    random_grid -= 0.5
-    random_grid /= 5
-    
-    # Define a B-spline transformation object
-    bspline = gryds.BSplineTransformation(random_grid)
-    
-    # Define an interpolator object for the image:
-    interpolator_img = gryds.Interpolator(img)
-    interpolator_mask = gryds.Interpolator(mask)
-    
-    # Transform the image using both transformations. The B-spline is applied to the
-    # sampling grid first, and the affine transformation second. From the
-    # perspective of the image itself, the order will seem reversed (!).
-    transformed_image = interpolator_img.transform(bspline, affine)
-    transformed_mask = interpolator_mask.transform(bspline, affine)
-    
-    img = torch.from_numpy(transformed_image.copy())
-    mask = torch.from_numpy(transformed_mask.copy())
-    flipped_img = torchvision.transforms.functional.hflip(img = img) # change to .vflip for vertical flip
-    flipped_mask = torchvision.transforms.functional.hflip(img = mask)
-    transformed_image = flipped_img.cpu().detach().numpy()
-    transformed_mask = flipped_mask.cpu().detach().numpy()
-    
-    return transformed_image, transformed_mask
-               
 #%%
 
 def get_model(img_size, num_classes):
@@ -227,53 +83,18 @@ def get_model(img_size, num_classes):
     return model
 
 #%%
-#Relevant variables
-batch_size = 35
-img_size = (256,256)
-num_classes=2
 
-# Opening external dataset
-data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
-processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
+x_train = Dataset(filename = os.path.join(processed_data_path,"train_images.txt"))
+y_train = Dataset(filename = os.path.join(processed_data_path,"train_masks.txt"))
+x_val = Dataset(filename = os.path.join(processed_data_path,"val_images.txt"))
+y_val = Dataset(filename = os.path.join(processed_data_path,"val_masks.txt"))
 
-if not os.path.isdir(processed_data_path):
-    os.mkdir(processed_data_path)
+# If train-validation split has not yet been done:
 
-# number_list COMPLETE, this list should be used in the end for all the patients
-number_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
-
-# number_list SHORT, this list should be used just to check the code for the first 3 patients
-number_list = number_list[:5]                
-#%%
-
-i = 0
-image_nr = 0
-List_images = Dataset()
-List_masks = Dataset()
-list_val_images = Dataset()
-list_val_masks = Dataset()
-
-List_images.read(os.path.join(processed_data_path,"List_images.txt"))
-List_masks.read(os.path.join(processed_data_path,"List_masks.txt"))
-list_val_images.read(os.path.join(processed_data_path,"list_val_images.txt"))
-list_val_masks.read(os.path.join(processed_data_path,"list_val_masks.txt"))
-
-x_train = List_images
-y_train = List_masks
-
-x_val = list_val_images
-y_val = list_val_masks
-
-# x_tot = List_images
-# y_tot = List_masks
-    
 # x_tot.shuffle(1337)
 # y_tot.shuffle(1337)
 
-
-# validationx=list_val_images
-# validationy=list_val_masks
-# validation_samples = len(validationx)
+# validation_samples = 20
 
 # x_train = Dataset()
 # y_train = Dataset()
@@ -281,15 +102,14 @@ y_val = list_val_masks
 #     x_train.addimage(x_tot.getpath(i))
 #     y_train.addimage(y_tot.getpath(i))
 
-print('xtrain:', len(x_train))
-print('ytrain:', len(y_train))
-
 # x_val = Dataset()
 # y_val = Dataset()
 # for i in range(len(x_tot)-validation_samples,len(x_tot)):
 #     x_val.addimage(x_tot.getpath(i))
 #     y_val.addimage(y_tot.getpath(i))
 
+print('xtrain:', len(x_train))
+print('ytrain:', len(y_train))
 print('x_val:', len(x_val))
 print('y_val:', len(y_val))
 
@@ -300,22 +120,22 @@ val_set = XY_dataset(x_val,y_val)
 #keras.backend.clear_session()
 
 # Build model
-model = get_model(img_size, num_classes)
+model = get_model((image_side,image_side), num_classes)
 #model.summary()
 
 model.compile(loss=MeanSquaredError(), optimizer=Adam(), metrics=['accuracy'])
 
 model.fit(train_set,
-          batch_size=batch_size,
+          batch_size=batch_size, # Only change batch size at top of file!
           epochs=1,
-          verbose=1,
+          verbose=True,
           validation_data=val_set,
-          steps_per_epoch=math.floor(len(train_set)/batch_size),
-          validation_steps=len(val_set)) #Don't change steps_per_epoch and validation_steps!
+          steps_per_epoch=math.floor(len(train_set)/batch_size), # Don't change steps_per_epoch!
+          validation_steps=len(val_set)) # Don't change validation_steps!
 
-end_val_set = XY_dataset(x_val,y_val,end_evaluation=True)
+val_set.set_end_evaluation(True)
 
-score = model.evaluate(end_val_set, verbose=0)
+score = model.evaluate(val_set, verbose=True)
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
