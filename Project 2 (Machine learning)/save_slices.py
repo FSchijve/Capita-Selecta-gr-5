@@ -53,13 +53,13 @@ def normalize(img, mask):
 
 #%%
 
-# Transformations
+# Transforms
     
 def Bspline(img, mask):
     # Define a random 3x3 B-spline grid for a 2D image:
     random_grid = np.random.rand(2, 3, 3)
     random_grid -= 0.5
-    random_grid /= 5
+    random_grid /= 10
 
     # Define a B-spline transformation object
     bspline = gryds.BSplineTransformation(random_grid)
@@ -75,25 +75,26 @@ def Bspline(img, mask):
     return transformed_image, transformed_mask
 
 def Affine(img,mask):
-    # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
+    center_point_x = 0.1*random.randint(4,6)
+    center_point_y = 0.1*random.randint(4,6)
     affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
-    
+            ndim=2,
+            angles=[random.randrange(-1,2,2)*(np.pi/(random.randint(50,60)))], # List of angles (for 3D transformations you need a list of 3 angles).
+            center=[center_point_x, center_point_y]  # Center of rotation.
+            )
+
+
     # Define an interpolator object for the image:
     interpolator_img = gryds.Interpolator(img)
     interpolator_mask = gryds.Interpolator(mask)
-    
-    # Transform image and mask using Affine transformation
+
+    # Transform the image using Affine
     transformed_image = interpolator_img.transform(affine)
     transformed_mask = interpolator_mask.transform(affine)
+    
     return transformed_image, transformed_mask
 
-def flip(img, mask): # TODO: Check if it properly works
+def flip(img, mask): # Check if it properly works
     img = torch.from_numpy(img.copy())
     mask = torch.from_numpy(mask.copy())
     flipped_img = torchvision.transforms.functional.hflip(img = img) # change to .vflip for vertical flip
@@ -104,18 +105,18 @@ def flip(img, mask): # TODO: Check if it properly works
 
 def Bspline_and_Affine(img, mask):
     # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
+    center_point_x = 0.1*random.randint(4,6)
+    center_point_y = 0.1*random.randint(4,6)
     affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
+            ndim=2,
+            angles=[random.randrange(-1,2,2)*(np.pi/(random.randint(50, 60)))], # List of angles (for 3D transformations you need a list of 3 angles).
+            center=[center_point_x, center_point_y]  # Center of rotation.
+            )
     
     # Define a random 3x3 B-spline grid for a 2D image:
     random_grid = np.random.rand(2, 3, 3)
     random_grid -= 0.5
-    random_grid /= 5
+    random_grid /= 10
     
     # Define a B-spline transformation object
     bspline = gryds.BSplineTransformation(random_grid)
@@ -133,18 +134,18 @@ def Bspline_and_Affine(img, mask):
     
 def Bspline_and_Affine_flipped(img, mask):
     # Define a scaling transformation object
-    angle = random.randrange(-1,2,2)*np.pi/(random.randint(6,16))
-    center_point_x = 0.1*random.randint(3,7)
-    center_point_y = 0.1*random.randint(3,7)
+    center_point_x = 0.1*random.randint(4,6)
+    center_point_y = 0.1*random.randint(4,6)
     affine = gryds.AffineTransformation(
-    ndim=2,
-    angles=[angle], # List of angles (for 3D transformations you need a list of 3 angles).
-    center=[center_point_x, center_point_y])  # Center of rotation.
+            ndim=2,
+            angles=[random.randrange(-1,2,2)*(np.pi/(random.randint(50,60)))], # List of angles (for 3D transformations you need a list of 3 angles).
+            center=[center_point_x, center_point_y]  # Center of rotation.
+            )
     
     # Define a random 3x3 B-spline grid for a 2D image:
     random_grid = np.random.rand(2, 3, 3)
     random_grid -= 0.5
-    random_grid /= 5
+    random_grid /= 10
     
     # Define a B-spline transformation object
     bspline = gryds.BSplineTransformation(random_grid)
@@ -167,7 +168,6 @@ def Bspline_and_Affine_flipped(img, mask):
     transformed_mask = flipped_mask.cpu().detach().numpy()
     
     return transformed_image, transformed_mask
-
 #%%
 
 # Dataset classes
