@@ -359,7 +359,7 @@ if __name__ == '__main__':
         img, mask = normalize(img, mask)
 #            
         image_nr = process_image(img, mask, orig_img, orig_mask, image_nr)
-        if patient_nr % 6 ==0:
+        if patient_nr % 7 ==0:
             train_images.adddatasets([orig_img])
             train_masks.adddatasets([orig_mask])
         else:
