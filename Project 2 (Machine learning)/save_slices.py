@@ -7,31 +7,89 @@ import random
 import nibabel as nib
 import gryds
 import cv2
+import imageio
+
+#%%
+# Variables to change
+
+patient_list_length = 20
+image_side = 128
+dataset_type = "original"
 
 #%%
 # Standard variables
 
 # Opening external dataset
-data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
-processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
+if dataset_type == "prostate_extra":
+    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_prostate_extra"
+    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
 
+    patient_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
 
-# Patient list COMPLETE, this list should be used in the end for all the patients
-patient_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
+    target_img_paths = [os.path.join(data_path,f"labelsTr\prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"imagesTr\prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
 
-#%%
-# Variables to change
+elif dataset_type == "heart_extra":
+    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_heart_extra"
+    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\Task02_Heart"
 
+    patient_list = ['03', '04', '05', '07', '09', 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 29, 30]
+
+    target_img_paths = [os.path.join(data_path,f"labelsTr\la_0{patient_nr}.nii.gz") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"imagesTr\la_0{patient_nr}.nii.gz") for patient_nr in patient_list]
+
+elif dataset_type == "catsdogs":
+    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_catsdogs"
+    input_dir = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/data/catsdogs/images/"
+    target_dir = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/data/catsdogs/annotations/trimaps/"
+
+    # Making list of paths for all images and masks
+    input_img_paths = sorted(
+        [
+            os.path.join(input_dir, fname)
+            for fname in os.listdir(input_dir)
+            if fname.endswith(".jpg")])
+    target_img_paths = sorted(
+        [
+            os.path.join(target_dir, fname)
+            for fname in os.listdir(target_dir)
+            if fname.endswith(".png") and not fname.startswith(".")])
+
+    # Some images gave errors (idk why), so I removed them manually
+    input_img_paths.remove(os.path.join(input_dir,'Abyssinian_34.jpg'))
+    input_img_paths.remove(os.path.join(input_dir,'Egyptian_Mau_139.jpg'))
+    input_img_paths.remove(os.path.join(input_dir,'Egyptian_Mau_145.jpg'))
+    input_img_paths.remove(os.path.join(input_dir,'Egyptian_Mau_167.jpg'))
+    input_img_paths.remove(os.path.join(input_dir,'Egyptian_Mau_177.jpg'))
+    input_img_paths.remove(os.path.join(input_dir,'Egyptian_Mau_191.jpg'))
+    target_img_paths.remove(os.path.join(target_dir,'Abyssinian_34.png'))
+    target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_139.png'))
+    target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_145.png'))
+    target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_167.png'))
+    target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_177.png'))
+    target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_191.png'))
+
+elif dataset_type == "original":
+    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_original"
+    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data"
+    
+    patient_list = [102, 107, 108, 109, 115, 116, 117, 119, 12, 125, 127, 128, 129, 133, 135]
+
+    target_img_paths = [os.path.join(data_path,f"p{patient_nr}\prostaat.mhd") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"p{patient_nr}\mr_bffe.mhd") for patient_nr in patient_list]
+
+else:
+    raise Exception(f"dataset_type {dataset_type} not recognized!")
+    
 # Patient list SHORT, this list should be used just to check the code for the first few patients
-patient_list = patient_list[:2]
-
-image_side = 128
+target_img_paths = target_img_paths[:patient_list_length]
+input_img_paths = input_img_paths[:patient_list_length]
 
 #%%
 
 # Normalization
 
-def normalize_img(img): 
+def normalize_img(img, dataset_type): 
     # Enable when normalizing all values between 0 and 1:
     # img=img/np.amax(img)
     
@@ -41,15 +99,32 @@ def normalize_img(img):
     # resizing images to image_side x image_side
     img = cv2.resize(img, (image_side,image_side), interpolation = cv2.INTER_CUBIC)
     return img
+    
+def normalize_mask(mask, dataset_type):
+    if dataset_type in ["prostate_extra", "heart_extra", "original"]:
+        mask[mask>1]=1
+        # resizing masks to image_side x image_side
+        mask = cv2.resize(mask, (image_side, image_side), interpolation = cv2.INTER_NEAREST)
+        return mask
+    
+    elif dataset_type == "catsdogs":
+        # resizing masks to image_side x image_side
+        mask = cv2.resize(mask, (image_side,image_side), interpolation = cv2.INTER_NEAREST)
+        max_value = np.amax(mask)
+        min_value = np.amin(mask)
+        for i in range(image_side):
+            for j in range(image_side):
+                if mask[i,j]==max_value:
+                    mask[i,j]=1
+                if mask[i,j]==min_value:
+                    mask[i,j]=1
+                else:
+                    mask[i,j]=0
+        return mask
+        
 
-def normalize_mask(mask): 
-    mask[mask>1]=1
-    # resizing masks to 128 x 128
-    mask = cv2.resize(mask, (image_side, image_side), interpolation = cv2.INTER_NEAREST)
-    return mask
-
-def normalize(img, mask):
-    return normalize_img(img), normalize_mask(mask)
+def normalize(img, mask, dataset_type):
+    return normalize_img(img, dataset_type), normalize_mask(mask, dataset_type)
 
 #%%
 
@@ -174,10 +249,14 @@ def Bspline_and_Affine_flipped(img, mask):
 
 class Dataset():
     # Single dataset with slices
-    def __init__(self, image_paths = [], filename = None):
-        self.image_paths = image_paths.copy()
+    def __init__(self, image_side = None, filename = None):
+        self.image_paths = [].copy()
+        self.image_side = image_side
         if filename != None:
             self.read(filename)
+        else:
+            if image_side == None:
+                raise Exception("Image side is not given!")
         
     def __len__(self):
         return len(self.image_paths)
@@ -218,16 +297,26 @@ class Dataset():
     def write(self, filename):
     # Write the dataset to a file
         with open(filename,'w') as f:
+            f.writelines(f"image_side = {self.image_side}\n")
             for image_path in self.image_paths:
                 f.writelines(image_path+'\n')
         
     def read(self, filename):
     # Add slices from a dataset file
+        self.image_paths = [].copy()
+        self.image_side = 0
+
         with open(filename,'r') as f:
             lines = f.readlines()
 
         for line in lines:
-            self.image_paths.append(line[:-1])            
+            if line[:13] == "image_side = ":
+                self.image_side = int(line[13:-1])
+            else:
+                self.image_paths.append(line[:-1])
+        
+        if self.image_side == 0:
+            raise Exception("Old dataset version is used. Please create augmented slices again with this updated version of save_slices.")
         
 class XY_dataset():
     # Combined dataset (x = images, y = masks)
@@ -240,6 +329,9 @@ class XY_dataset():
         self.batch_size = batch_size
         self.end_evaluation = end_evaluation
         self.verbose = verbose
+        if y_set.image_side != x_set.image_side:
+            raise Exception("images in the x_set and y_set are not of the same size!")
+        self.image_side = x_set.image_side
         
     def __iter__(self):
         return self
@@ -267,7 +359,6 @@ class XY_dataset():
     
     def set_end_evaluation(self, bool):
         self.end_evaluation = bool
-
 
 #%%
     
@@ -300,40 +391,63 @@ if __name__ == '__main__':
         os.mkdir(processed_data_path)
 
     image_nr = 0
-    images = Dataset()
-    masks = Dataset()
+    images = Dataset(image_side)
+    masks = Dataset(image_side)
     
     # loop over the patients
-    for patient_nr in patient_list:   
-        mask_path = os.path.join(data_path,f"labelsTr\prostate_{patient_nr}.nii.gz"); 
-        img_path  = os.path.join(data_path,f"imagesTr\prostate_{patient_nr}.nii.gz")
+    for i, paths in enumerate(zip(target_img_paths, input_img_paths)):
+        mask_path, img_path = paths
+
+        orig_img, orig_mask = Dataset(image_side), Dataset(image_side)
+        if dataset_type in ["prostate_extra", "heart_extra", "original"]:
+            baf0_img, baf0_mask = Dataset(image_side), Dataset(image_side)
+            baf1_img, baf1_mask = Dataset(image_side), Dataset(image_side)
+            ba0_img, ba0_mask = Dataset(image_side), Dataset(image_side)
+            ba1_img, ba1_mask = Dataset(image_side), Dataset(image_side)
+            b_img, b_mask = Dataset(image_side), Dataset(image_side)
+    
+        if dataset_type in ["prostate_extra", "heart_extra"]:
+            nr_slices = nib.load(mask_path).get_fdata().shape[2]
+        elif dataset_type == "original":
+            nr_slices = imageio.imread(mask_path).shape[0]
+        elif dataset_type == "catsdogs":
+            print('cat/dog',i)
+            nr_slices = 1
         
-        orig_img, orig_mask = Dataset(), Dataset()
-        baf0_img, baf0_mask = Dataset(), Dataset()
-        baf1_img, baf1_mask = Dataset(), Dataset()
-        ba0_img, ba0_mask = Dataset(), Dataset()
-        ba1_img, ba1_mask = Dataset(), Dataset()
-        b_img, b_mask = Dataset(), Dataset()
-    
-        nr_slices = nib.load(mask_path).get_fdata().shape[2]
-    
         # Loop the slices 
         for slice in range(nr_slices):
-            mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
-            img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice,0]) 
-            print ('Patient',patient_nr,'slice',slice)
+            if dataset_type in ["prostate_extra", "heart_extra"]:
+                mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
+                img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice])
+                print ('Patient step',i,'slice',slice)
+
+            elif dataset_type == "original":
+                mask = imageio.imread(mask_path)[slice,:,:]
+                img  = imageio.imread(img_path)[slice,:,:]                
+
+            elif dataset_type == "catsdogs":
+                mask = imageio.imread(mask_path)
+                img = imageio.imread(img_path)
+                
+                # some images are different shapes (:,:,3) and some only (:,:)
+                if len(img.shape)>2:
+                    img = img[:,:,0]
 
             # Process images in different ways
-            img, mask = normalize(img, mask)
+            img, mask = normalize(img, mask, dataset_type)
             image_nr = process_image(img, mask, orig_img, orig_mask, image_nr)
-            image_nr = process_image(img, mask, baf0_img, baf0_mask, image_nr, Bspline_and_Affine_flipped)
-            image_nr = process_image(img, mask, baf1_img, baf1_mask, image_nr, Bspline_and_Affine_flipped)
-            image_nr = process_image(img, mask, ba0_img, ba0_mask, image_nr, Bspline_and_Affine)
-            image_nr = process_image(img, mask, ba1_img, ba1_mask, image_nr, Bspline_and_Affine)
-            image_nr = process_image(img, mask, b_img, b_mask, image_nr, Bspline)
+            if dataset_type in ["prostate_extra", "heart_extra", "original"]:
+                image_nr = process_image(img, mask, baf0_img, baf0_mask, image_nr, Bspline_and_Affine_flipped)
+                image_nr = process_image(img, mask, baf1_img, baf1_mask, image_nr, Bspline_and_Affine_flipped)
+                image_nr = process_image(img, mask, ba0_img, ba0_mask, image_nr, Bspline_and_Affine)
+                image_nr = process_image(img, mask, ba1_img, ba1_mask, image_nr, Bspline_and_Affine)
+                image_nr = process_image(img, mask, b_img, b_mask, image_nr, Bspline)
 
-        images.adddatasets([orig_img,baf0_img,baf1_img,ba0_img,ba1_img,b_img])
-        masks.adddatasets([orig_mask,baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
+        images.adddataset(orig_img)
+        masks.adddataset(orig_mask)
+        if dataset_type in ["prostate_extra", "heart_extra", "original"]:
+            images.adddatasets([baf0_img,baf1_img,ba0_img,ba1_img,b_img])
+            masks.adddatasets([baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
     
     images.write(os.path.join(processed_data_path,"images.txt"))
     masks.write(os.path.join(processed_data_path,"masks.txt"))

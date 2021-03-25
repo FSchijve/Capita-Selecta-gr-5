@@ -12,7 +12,7 @@ from save_slices import Dataset, XY_dataset
 # Standard variables
 
 # Preprocessed dataset
-processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data"
+processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_prostate_extra"
 
 # Number of classes
 num_classes = 2
@@ -21,7 +21,7 @@ num_classes = 2
 # Variables to change
 
 image_side = 128
-batch_size = 1
+batch_size = 40
 
 #%%
 
@@ -86,6 +86,8 @@ def get_model(img_size, num_classes):
 x_tot = Dataset(filename = os.path.join(processed_data_path,"images.txt"))
 y_tot = Dataset(filename = os.path.join(processed_data_path,"masks.txt"))
 
+image_side = x_tot.image_side
+
 # If train-validation split has not yet been done:
 
 x_tot.shuffle(1337)
@@ -93,14 +95,14 @@ y_tot.shuffle(1337)
 
 validation_samples = round(len(x_tot)*0.3)
 
-x_train = Dataset()
-y_train = Dataset()
+x_train = Dataset(image_side)
+y_train = Dataset(image_side)
 for i in range(0,len(x_tot)-validation_samples):
     x_train.addimage(x_tot.getpath(i))
     y_train.addimage(y_tot.getpath(i))
 
-x_val = Dataset()
-y_val = Dataset()
+x_val = Dataset(image_side)
+y_val = Dataset(image_side)
 for i in range(len(x_tot)-validation_samples,len(x_tot)):
     x_val.addimage(x_tot.getpath(i))
     y_val.addimage(y_tot.getpath(i))
@@ -124,7 +126,7 @@ model.compile(loss=MeanSquaredError(), optimizer=Adam(), metrics=['accuracy'])
 
 model.fit(train_set,
           batch_size=batch_size, # Only change batch size at top of file!
-          epochs=1,
+          epochs=20,
           verbose=True,
           validation_data=val_set,
           steps_per_epoch=math.floor(len(train_set)/batch_size), # Don't change steps_per_epoch!
