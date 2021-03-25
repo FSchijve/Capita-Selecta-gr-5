@@ -8,6 +8,8 @@ import nibabel as nib
 import gryds
 import cv2
 import imageio
+from sklearn.utils import shuffle
+import math
 
 #%%
 # Variables to change
@@ -321,41 +323,138 @@ class Dataset():
 class XY_dataset():
     # Combined dataset (x = images, y = masks)
     def __init__(self, x_set, y_set, batch_size = 1, end_evaluation = False, verbose = False):
+        # Check if x_set and y_set have same length
         if len(x_set) != len(y_set):
             raise Exception("Length of x_set is not the same as length of y_set.")
-        self.x_set, self.y_set = x_set, y_set
-        self.n = 0
-        self.max = len(x_set)
+
+        # Add datasets to object            
+        self.x_set = x_set
+        self.y_set = y_set
+        
+        # Add batchsize to object and check batch_size
         self.batch_size = batch_size
+        if batch_size > len(x_set): raise Exception("Batch size must be smaller then dataset size.")
+
+        # Determine number of batches
+        self.number_of_batches = math.floor(len(x_set)/batch_size)
+
+        # Locations of the empty and nonempty slices
+        self.indices_empty, self.indices_nonempty = [], []
+        for i in range(len(y_set)):
+            if np.array([y_set[i]]).sum() == 0: # If slice is empty
+                self.indices_empty.append(i)
+            else: # If slice is not empty
+                self.indices_nonempty.append(i)
+
+        # Determine which fraction is empty and which fraction is not
+        fraction_empty = len(self.indices_empty)/len(x_set)
+        fraction_nonempty = 1-fraction_empty
+        
+        # Determine the batch sizes of the empty and nonempty slices
+        self.batch_size_empty = [math.floor(fraction_empty*batch_size)]*self.number_of_batches
+        self.batch_size_nonempty = [math.floor(fraction_nonempty*batch_size)]*self.number_of_batches
+        
+        # If the batch size is 1 less then we want
+        if self.batch_size_empty[0]+self.batch_size_nonempty[0] != self.batch_size:
+            # If the batch size is even less then that, something probably went wrong.
+            if self.batch_size_empty[0]+self.batch_size_nonempty[0]+1 != self.batch_size:
+                raise Exception("empty-nonempty split failed - code should be rewritten! (Call Aart)")
+
+            # How many exra empty and nonempty slices we want
+            n_empty_extra = round(fraction_empty*self.number_of_batches)
+            n_nonempty_extra = self.number_of_batches - n_empty_extra
+            if n_empty_extra > len(self.indices_empty)-sum(self.batch_size_empty):
+                n_empty_extra = len(self.indices_empty)-sum(self.batch_size_empty)
+                n_nonempty_extra = self.number_of_batches - n_empty_extra
+            if n_nonempty_extra > len(self.indices_nonempty)-sum(self.batch_size_nonempty):
+                n_nonempty_extra = len(self.indices_nonempty)-sum(self.batch_size_nonempty)
+                n_empty_extra = self.number_of_batches - n_nonempty_extra
+
+            # Create lists to add
+            extra_empty = [1]*n_empty_extra + [0]*n_nonempty_extra
+            extra_nonempty = [0]*n_empty_extra + [1]*n_nonempty_extra
+            
+            # Shuffle lists
+            extra_empty, extra_nonempty = shuffle(extra_empty, extra_nonempty)
+            
+            # Add slices to batches
+            for i in range(len(extra_empty)):
+                self.batch_size_empty[i] += extra_empty[i]
+                self.batch_size_nonempty[i] += extra_nonempty[i]
+                            
+        # Set trackers to 0
+        self.batch_nr = 0
+        self.empty_nr = 0
+        self.nonempty_nr = 0
+
+        # Other variables
         self.end_evaluation = end_evaluation
+        self.last_step = False
         self.verbose = verbose
         if y_set.image_side != x_set.image_side:
             raise Exception("images in the x_set and y_set are not of the same size!")
         self.image_side = x_set.image_side
         
+    def __len__(self):
+        return len(self.x_set)
+
     def __iter__(self):
         return self
     
     def __next__(self):
-        # Return next batch        
+    # Return next batch
         
+        # To fix error:
+        if self.end_evaluation and self.last_step:
+            raise StopIteration
+
+        # After one epoch
+        if self.batch_nr == self.number_of_batches:
+            # Stop end evaluation after this step
+            if self.end_evaluation:
+                self.last_step = True
+            # And go to next epoch
+            self.batch_nr = 0
+
+        # Arrays with slices
         x_array, y_array = [], []
-        for _ in range(0,self.batch_size):
-            if self.verbose: print(f"Read slice {self.n}")
-                    
-            x_array.append(self.x_set[self.n])
-            y_array.append(self.y_set[self.n])
+        
+        # Add empty slices
+        if self.verbose: print(f"\nRead {self.batch_size_empty[self.batch_nr]} empty slices")
+        for _ in range(self.batch_size_empty[self.batch_nr]):
+           # Repeat from start
+            if self.empty_nr == len(self.indices_empty):
+                self.empty_nr = 0
+
+            if self.verbose: print(f"Read empty slice {self.empty_nr}")
+
+            # Add slice
+            x_array.append(self.x_set[self.indices_empty[self.empty_nr]])
+            y_array.append(self.y_set[self.indices_empty[self.empty_nr]])
     
-            self.n += 1
-            if self.n >= self.max:
-                self.n = 0
-                if self.end_evaluation:
-                    raise StopIteration
+            self.empty_nr += 1
+                        
+        # Add nonempty slices
+        if self.verbose: print(f"Read {self.batch_size_nonempty[self.batch_nr]} nonempty slices")
+        for _ in range(self.batch_size_nonempty[self.batch_nr]):
+            # Repeat from start
+            if self.nonempty_nr == len(self.indices_nonempty):
+                self.nonempty_nr = 0
+
+            if self.verbose: print(f"Read nonempty slice {self.nonempty_nr}")
+
+            # Add slice                    
+            x_array.append(self.x_set[self.indices_nonempty[self.nonempty_nr]])
+            y_array.append(self.y_set[self.indices_nonempty[self.nonempty_nr]])
+    
+            self.nonempty_nr += 1
+
+        self.batch_nr += 1
+
+        # Shuffle empty and nonempty slices
+        x_array, y_array = shuffle(x_array, y_array)
 
         return (np.array(x_array),np.array(y_array))
-
-    def __len__(self):
-        return len(self.x_set)
     
     def set_end_evaluation(self, bool):
         self.end_evaluation = bool

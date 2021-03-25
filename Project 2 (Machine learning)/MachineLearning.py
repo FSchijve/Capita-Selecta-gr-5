@@ -1,4 +1,5 @@
-# First, we import PyTorch and NumPy
+import logging
+logging.getLogger('tensorflow').disabled = True
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras.losses import MeanSquaredError
@@ -126,7 +127,7 @@ model.compile(loss=MeanSquaredError(), optimizer=Adam(), metrics=['accuracy'])
 
 model.fit(train_set,
           batch_size=batch_size, # Only change batch size at top of file!
-          epochs=20,
+          epochs=1,
           verbose=True,
           validation_data=val_set,
           steps_per_epoch=math.floor(len(train_set)/batch_size), # Don't change steps_per_epoch!
@@ -135,6 +136,7 @@ model.fit(train_set,
 val_set.set_end_evaluation(True)
 
 score = model.evaluate(val_set, verbose=True)
+print(f"Check if the bar above says {len(val_set)}/{len(val_set)}. If not: call Aart!")
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
