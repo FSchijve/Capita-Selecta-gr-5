@@ -83,30 +83,27 @@ def get_model(img_size, num_classes):
     return model
 
 #%%
-
-x_train = Dataset(filename = os.path.join(processed_data_path,"train_images.txt"))
-y_train = Dataset(filename = os.path.join(processed_data_path,"train_masks.txt"))
-x_val = Dataset(filename = os.path.join(processed_data_path,"val_images.txt"))
-y_val = Dataset(filename = os.path.join(processed_data_path,"val_masks.txt"))
+x_tot = Dataset(filename = os.path.join(processed_data_path,"images.txt"))
+y_tot = Dataset(filename = os.path.join(processed_data_path,"masks.txt"))
 
 # If train-validation split has not yet been done:
 
-# x_tot.shuffle(1337)
-# y_tot.shuffle(1337)
+x_tot.shuffle(1337)
+y_tot.shuffle(1337)
 
-# validation_samples = 20
+validation_samples = round(len(x_tot)*0.3)
 
-# x_train = Dataset()
-# y_train = Dataset()
-# for i in range(0,len(x_tot)-validation_samples):
-#     x_train.addimage(x_tot.getpath(i))
-#     y_train.addimage(y_tot.getpath(i))
+x_train = Dataset()
+y_train = Dataset()
+for i in range(0,len(x_tot)-validation_samples):
+    x_train.addimage(x_tot.getpath(i))
+    y_train.addimage(y_tot.getpath(i))
 
-# x_val = Dataset()
-# y_val = Dataset()
-# for i in range(len(x_tot)-validation_samples,len(x_tot)):
-#     x_val.addimage(x_tot.getpath(i))
-#     y_val.addimage(y_tot.getpath(i))
+x_val = Dataset()
+y_val = Dataset()
+for i in range(len(x_tot)-validation_samples,len(x_tot)):
+    x_val.addimage(x_tot.getpath(i))
+    y_val.addimage(y_tot.getpath(i))
 
 print('xtrain:', len(x_train))
 print('ytrain:', len(y_train))

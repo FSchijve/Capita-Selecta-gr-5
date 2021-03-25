@@ -199,18 +199,17 @@ class Dataset():
     def addimages(self, image_paths):
     # Add a list of slices to the dataset
         for image_path in image_paths:
-            self.image_paths.append(image_path)
+            self.addimage(image_path)
 
     def adddataset(self, dataset):
     # Add a dataset to the dataset
         for i in range(len(dataset)):
-            self.image_paths.append(dataset.getpath(i))
+            self.addimage(dataset.getpath(i))
 
     def adddatasets(self, datasets):
     # Add a list of datasets to the dataset
         for i in range(len(datasets)):
-            for j in range(len(datasets[i])):
-                self.image_paths.append(datasets[i].getpath(j))
+            self.adddataset(datasets[i])
     
     def shuffle(self, seed):
     # Shuffle the dataset
@@ -301,10 +300,8 @@ if __name__ == '__main__':
         os.mkdir(processed_data_path)
 
     image_nr = 0
-    train_images = Dataset()
-    train_masks = Dataset()
-    val_images = Dataset()
-    val_masks = Dataset()
+    images = Dataset()
+    masks = Dataset()
     
     # loop over the patients
     for patient_nr in patient_list:   
@@ -335,12 +332,8 @@ if __name__ == '__main__':
             image_nr = process_image(img, mask, ba1_img, ba1_mask, image_nr, Bspline_and_Affine)
             image_nr = process_image(img, mask, b_img, b_mask, image_nr, Bspline)
 
-        train_images.adddatasets([baf0_img,baf1_img,ba0_img,ba1_img,b_img])
-        train_masks.adddatasets([baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
-        val_images.adddataset(orig_img)
-        val_masks.adddataset(orig_mask)    
+        images.adddatasets([orig_img,baf0_img,baf1_img,ba0_img,ba1_img,b_img])
+        masks.adddatasets([orig_mask,baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
     
-    train_images.write(os.path.join(processed_data_path,"train_images.txt"))
-    train_masks.write(os.path.join(processed_data_path,"train_masks.txt"))
-    val_images.write(os.path.join(processed_data_path,"val_images.txt"))
-    val_masks.write(os.path.join(processed_data_path,"val_masks.txt"))
+    images.write(os.path.join(processed_data_path,"images.txt"))
+    masks.write(os.path.join(processed_data_path,"masks.txt"))
