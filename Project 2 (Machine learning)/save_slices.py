@@ -322,7 +322,7 @@ class Dataset():
         
 class XY_dataset():
     # Combined dataset (x = images, y = masks)
-    def __init__(self, x_set, y_set, batch_size = 1, end_evaluation = False, verbose = False):
+    def __init__(self, x_set, y_set, datasettype, batch_size = 1, verbose = False):
         # Check if x_set and y_set have same length
         if len(x_set) != len(y_set):
             raise Exception("Length of x_set is not the same as length of y_set.")
@@ -330,6 +330,11 @@ class XY_dataset():
         # Add datasets to object            
         self.x_set = x_set
         self.y_set = y_set
+        
+        # Add datasettype
+        if datasettype not in ["train","validation","test"]:
+            raise Exception(f"datasettype {datasettype} not recognized.")
+        self.datasettype = datasettype
         
         # Add batchsize to object and check batch_size
         self.batch_size = batch_size
@@ -353,7 +358,11 @@ class XY_dataset():
         # Determine the batch sizes of the empty and nonempty slices
         self.batch_size_empty = [math.floor(fraction_empty*batch_size)]*self.number_of_batches
         self.batch_size_nonempty = [math.floor(fraction_nonempty*batch_size)]*self.number_of_batches
-        #TODO CHECK IF BATCHSIZE IS LARGE ENOUGH (HAS NONEMPTY SLICES)
+
+        # Check if every batch has nonempty slice if this is a training dataset
+        if self.datasettype == "train" and self.batch_size_nonempty[0] == 0:
+            raise Exception("Not every batch has a nonempty slice! Please increase the batch size.")
+
         # If the batch size is 1 less then we want
         if self.batch_size_empty[0]+self.batch_size_nonempty[0] != self.batch_size:
             # If the batch size is even less then that, something probably went wrong.
@@ -388,7 +397,6 @@ class XY_dataset():
         self.nonempty_nr = 0
 
         # Other variables
-        self.end_evaluation = end_evaluation
         self.last_step = False
         self.verbose = verbose
         if y_set.image_side != x_set.image_side:
@@ -405,13 +413,13 @@ class XY_dataset():
     # Return next batch
         
         # To fix error:
-        if self.end_evaluation and self.last_step:
+        if self.datasettype == "test" and self.last_step:
             raise StopIteration
 
         # After one epoch
         if self.batch_nr == self.number_of_batches:
             # Stop end evaluation after this step
-            if self.end_evaluation:
+            if self.datasettype == "test":
                 self.last_step = True
             # And go to next epoch
             self.batch_nr = 0
@@ -456,9 +464,6 @@ class XY_dataset():
 
         return (np.array(x_array),np.array(y_array))
     
-    def set_end_evaluation(self, bool):
-        self.end_evaluation = bool
-
 #%%
     
 def process_image(img, mask, dataset_img, dataset_mask, image_nr, function = None):

@@ -113,8 +113,8 @@ print('ytrain:', len(y_train))
 print('x_val:', len(x_val))
 print('y_val:', len(y_val))
 
-train_set = XY_dataset(x_train,y_train,batch_size)
-val_set = XY_dataset(x_val,y_val)
+train_set = XY_dataset(x_train,y_train,"train",batch_size)
+val_set = XY_dataset(x_val,y_val,"validation")
 
 # Free up RAM in case the model definition cells were run multiple times
 #keras.backend.clear_session()
@@ -133,10 +133,10 @@ model.fit(train_set,
           steps_per_epoch=math.floor(len(train_set)/batch_size), # Don't change steps_per_epoch!
           validation_steps=len(val_set)) # Don't change validation_steps!
 
-val_set.set_end_evaluation(True)
+val_set.datasettype = "test"
 
 score = model.evaluate(val_set, verbose=True)
-print(f"Check if the bar above says {len(val_set)}/{len(val_set)}. If not: call Aart!")
+print(f"\n\nCheck if the bar above says {len(val_set)}/{len(val_set)}. If not: call Aart!")
 
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
