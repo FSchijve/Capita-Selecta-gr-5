@@ -14,7 +14,7 @@ import math
 #%%
 # Variables to change
 
-patient_list_length = 1
+patient_list_length = None
 image_side = 128
 dataset_type = "prostate_extra"
 
@@ -95,12 +95,12 @@ if patient_list_length != None:
 def normalize_img(img, dataset_type):
     # Enable when normalizing all values between 0 and 1:
     # img=img/np.amax(img)
-    
-    # Enable when normalizing mean 0 std 1:
-    img = (img - np.mean(img))/np.std(img)
-    
+        
     # resizing images to image_side x image_side
     img = cv2.resize(img, (image_side,image_side), interpolation = cv2.INTER_CUBIC)
+
+    # Enable when normalizing mean 0 std 1:
+    img = (img - np.mean(img))/np.std(img)
     return img
     
 def normalize_mask(mask, dataset_type):
@@ -408,6 +408,24 @@ class XY_dataset():
 
     def __iter__(self):
         return self
+
+    def __getitem__(self,index):
+        if self.datasettype == "train": raise Exception("Unfortunately this is not possible since images are shuffled everytime")
+        if self.batch_size_empty[index]:
+            i = 0
+            for j in range(index):
+                i += self.batch_size_empty[j]
+            x = self.x_set[self.indices_empty[i]]
+            y = self.y_set[self.indices_empty[i]]
+        elif self.batch_size_nonempty[index]:
+            i = 0
+            for j in range(index):
+                i += self.batch_size_nonempty[j]      
+            x = self.x_set[self.indices_nonempty[i]]
+            y = self.y_set[self.indices_nonempty[i]]
+        else: raise Exception("Slice must be either empty or nonempty - something went wrong!")
+
+        return x, y
     
     def __next__(self):
     # Return next batch
@@ -424,7 +442,7 @@ class XY_dataset():
         x_array, y_array = [], []
         
         # Add empty slices
-        if self.verbose: print(f"\nRead {self.batch_size_empty[self.batch_nr]} empty slices")
+        if self.verbose and self.datasettype == "train": print(f"\nRead {self.batch_size_empty[self.batch_nr]} empty slices")
         for _ in range(self.batch_size_empty[self.batch_nr]):
            # Repeat from start
             if self.empty_nr == len(self.indices_empty):
@@ -439,7 +457,7 @@ class XY_dataset():
             self.empty_nr += 1
                         
         # Add nonempty slices
-        if self.verbose: print(f"Read {self.batch_size_nonempty[self.batch_nr]} nonempty slices")
+        if self.verbose and self.datasettype == "train": print(f"Read {self.batch_size_nonempty[self.batch_nr]} nonempty slices")
         for _ in range(self.batch_size_nonempty[self.batch_nr]):
             # Repeat from start
             if self.nonempty_nr == len(self.indices_nonempty):
