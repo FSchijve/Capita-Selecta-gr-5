@@ -16,34 +16,35 @@ import math
 
 patient_list_length = None
 image_side = 128
-dataset_type = "prostate_extra"
+dataset_type = "original"
 
 #%%
+
 # Standard variables
 
 # Opening external dataset
 if dataset_type == "prostate_extra":
-    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_prostate_extra"
-    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\new"
+    processed_data_path = r"/home/8dm20-5/processed_prostate"
+    data_path = r"/home/8dm20-5"
 
-    patient_list = ['00', '01', '02', '04', '06', '07', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
+    patient_list = ['0', '1', '2', '4', '6', '7', 10, 13, 14, 16, 17, 18, 20, 21, 24, 25, 28, 29, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47]
 
-    target_img_paths = [os.path.join(data_path,f"labelsTr\prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
-    input_img_paths  = [os.path.join(data_path,f"imagesTr\prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
+    target_img_paths = [os.path.join(data_path,f"labelsTr/prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"imagesTr/prostate_{patient_nr}.nii.gz") for patient_nr in patient_list]
 
 elif dataset_type == "heart_extra":
-    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_heart_extra"
-    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data\Task02_Heart"
+    processed_data_path = r"/home/8dm20-5/processed_heart"
+    data_path = r"/home/8dm20-5/Task02_Heart"
 
-    patient_list = ['03', '04', '05', '07', '09', 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 29, 30]
+    patient_list = ['3', '4', '5', '7', '9', 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 29, 30]
 
-    target_img_paths = [os.path.join(data_path,f"labelsTr\la_0{patient_nr}.nii.gz") for patient_nr in patient_list]
-    input_img_paths  = [os.path.join(data_path,f"imagesTr\la_0{patient_nr}.nii.gz") for patient_nr in patient_list]
+    target_img_paths = [os.path.join(data_path,f"labelsTr/la_{patient_nr}.nii.gz") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"imagesTr/la_{patient_nr}.nii.gz") for patient_nr in patient_list]
 
 elif dataset_type == "catsdogs":
-    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_catsdogs"
-    input_dir = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/data/catsdogs/images/"
-    target_dir = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/data/catsdogs/annotations/trimaps/"
+    processed_data_path = r"/home/8dm20-5/processed_catsdogs"
+    input_dir = r"/home/8dm20-5/catsdogs/images/"
+    target_dir = r"/home/8dm20-5/catsdogs/annotations/trimaps/"
 
     # Making list of paths for all images and masks
     input_img_paths = sorted(
@@ -72,13 +73,13 @@ elif dataset_type == "catsdogs":
     target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_191.png'))
 
 elif dataset_type == "original":
-    processed_data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\preprocessed_data_original"
-    data_path = r"C:\Users\Dell\Documents\Medical_Imaging\CSMI_TUE\data"
+    processed_data_path = r"/home/8dm20-5/processed_original"
+    data_path = r"/home/8dm20-5/data1/data"
     
-    patient_list = [102, 107, 108, 109, 115, 116, 117, 119, 12, 125, 127, 128, 129, 133, 135]
+    patient_list = [102, 107, 108, 109, 115, 116, 117, 119, 120, 125, 127, 128, 129, 133, 135]
 
-    target_img_paths = [os.path.join(data_path,f"p{patient_nr}\prostaat.mhd") for patient_nr in patient_list]
-    input_img_paths  = [os.path.join(data_path,f"p{patient_nr}\mr_bffe.mhd") for patient_nr in patient_list]
+    target_img_paths = [os.path.join(data_path,f"p{patient_nr}/prostaat.mhd") for patient_nr in patient_list]
+    input_img_paths  = [os.path.join(data_path,f"p{patient_nr}/mr_bffe.mhd") for patient_nr in patient_list]
 
 else:
     raise Exception(f"dataset_type {dataset_type} not recognized!")
@@ -95,11 +96,11 @@ if patient_list_length != None:
 def normalize_img(img, dataset_type):
     # Enable when normalizing all values between 0 and 1:
     # img=img/np.amax(img)
-        
+    
     # resizing images to image_side x image_side
     img = cv2.resize(img, (image_side,image_side), interpolation = cv2.INTER_CUBIC)
 
-    # Enable when normalizing mean 0 std 1:
+    # normalizatiog
     img = (img - np.mean(img))/np.std(img)
     return img
     
@@ -408,24 +409,6 @@ class XY_dataset():
 
     def __iter__(self):
         return self
-
-    def __getitem__(self,index):
-        if self.datasettype == "train": raise Exception("Unfortunately this is not possible since images are shuffled everytime")
-        if self.batch_size_empty[index]:
-            i = 0
-            for j in range(index):
-                i += self.batch_size_empty[j]
-            x = self.x_set[self.indices_empty[i]]
-            y = self.y_set[self.indices_empty[i]]
-        elif self.batch_size_nonempty[index]:
-            i = 0
-            for j in range(index):
-                i += self.batch_size_nonempty[j]      
-            x = self.x_set[self.indices_nonempty[i]]
-            y = self.y_set[self.indices_nonempty[i]]
-        else: raise Exception("Slice must be either empty or nonempty - something went wrong!")
-
-        return x, y
     
     def __next__(self):
     # Return next batch
@@ -442,7 +425,7 @@ class XY_dataset():
         x_array, y_array = [], []
         
         # Add empty slices
-        if self.verbose and self.datasettype == "train": print(f"\nRead {self.batch_size_empty[self.batch_nr]} empty slices")
+        if self.verbose: print(f"\nRead {self.batch_size_empty[self.batch_nr]} empty slices")
         for _ in range(self.batch_size_empty[self.batch_nr]):
            # Repeat from start
             if self.empty_nr == len(self.indices_empty):
@@ -457,7 +440,7 @@ class XY_dataset():
             self.empty_nr += 1
                         
         # Add nonempty slices
-        if self.verbose and self.datasettype == "train": print(f"Read {self.batch_size_nonempty[self.batch_nr]} nonempty slices")
+        if self.verbose: print(f"Read {self.batch_size_nonempty[self.batch_nr]} nonempty slices")
         for _ in range(self.batch_size_nonempty[self.batch_nr]):
             # Repeat from start
             if self.nonempty_nr == len(self.indices_nonempty):
@@ -509,9 +492,21 @@ if __name__ == '__main__':
         os.mkdir(processed_data_path)
 
     image_nr = 0
-    images = Dataset(image_side)
-    masks = Dataset(image_side)
-    
+    if dataset_type != "original":
+        images = Dataset(image_side)
+        masks = Dataset(image_side)
+    else:
+        images_train = Dataset(image_side)
+        masks_train = Dataset(image_side)
+        images_val = Dataset(image_side)
+        masks_val = Dataset(image_side)
+
+    if dataset_type == "original":
+        indices = list(range(len(target_img_paths)))
+        random.shuffle(indices)
+        indices_train = indices[:5]
+        indices_val = indices[5:]
+
     # loop over the patients
     for i, paths in enumerate(zip(target_img_paths, input_img_paths)):
         mask_path, img_path = paths
@@ -546,11 +541,13 @@ if __name__ == '__main__':
 
             elif dataset_type == "original":
                 mask = imageio.imread(mask_path)[slice,:,:]
-                img  = imageio.imread(img_path)[slice,:,:]                
+                img  = imageio.imread(img_path)[slice,:,:]
+                print('patient step',i,'slice',slice)
 
             elif dataset_type == "catsdogs":
                 mask = imageio.imread(mask_path)
                 img = imageio.imread(img_path)
+                print('cat/dog',i)
                 
                 # some images are different shapes (:,:,3) and some only (:,:)
                 if len(img.shape)>2:
@@ -566,11 +563,27 @@ if __name__ == '__main__':
                 image_nr = process_image(img, mask, ba1_img, ba1_mask, image_nr, Bspline_and_Affine)
                 image_nr = process_image(img, mask, b_img, b_mask, image_nr, Bspline)
 
-        images.adddataset(orig_img)
-        masks.adddataset(orig_mask)
-        if dataset_type in ["prostate_extra", "heart_extra", "original"]:
-            images.adddatasets([baf0_img,baf1_img,ba0_img,ba1_img,b_img])
-            masks.adddatasets([baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
-    
-    images.write(os.path.join(processed_data_path,"images.txt"))
-    masks.write(os.path.join(processed_data_path,"masks.txt"))
+        if dataset_type != 'original':
+            images.adddataset(orig_img)
+            masks.adddataset(orig_mask)
+            if dataset_type in ["prostate_extra", "heart_extra"]:
+                images.adddatasets([baf0_img,baf1_img,ba0_img,ba1_img,b_img])
+                masks.adddatasets([baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
+        else:
+            if i in indices_train:
+                images_train.adddatasets([orig_img,baf0_img,baf1_img,ba0_img,ba1_img,b_img])
+                masks_train.adddatasets([orig_mask,baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
+            if i in indices_val:
+                images_val.adddataset(orig_img)
+                masks_val.adddataset(orig_img)
+        
+    if dataset_type != 'original':
+        images.write(os.path.join(processed_data_path,"images.txt"))
+        masks.write(os.path.join(processed_data_path,"masks.txt"))
+    else:
+        images_train.shuffle(1234)
+        masks_train.shuffle(1234)
+        images_train.write(os.path.join(processed_data_path,"images_train.txt"))
+        masks_train.write(os.path.join(processed_data_path,"masks_train.txt"))
+        images_val.write(os.path.join(processed_data_path,"images_val.txt"))
+        masks_val.write(os.path.join(processed_data_path,"masks_val.txt"))

@@ -1,6 +1,7 @@
 from keras.models import model_from_json
 from keras.losses import BinaryCrossentropy
 from keras.optimizers import Adam
+from skimage.filters import threshold_otsu
 import keras
 import tensorflow as tf
 import os
@@ -20,8 +21,8 @@ def dice_coefficient(y_true, y_pred):
 #%%
 # Preprocessed dataset
 processed_data_path = "C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/preprocessed_data_prostate_extra"
-h5_file = "C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/code/Capita-Selecta-gr-5/Project 2 (Machine learning)/Models/modelcatsdogs2.h5"
-json_file = "C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/code/Capita-Selecta-gr-5/Project 2 (Machine learning)/Models/modelcatsdogs2.json"
+h5_file = "C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/code/Capita-Selecta-gr-5/Project 2 (Machine learning)/Models/modelprostatefinal2.h5"
+json_file = "C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/code/Capita-Selecta-gr-5/Project 2 (Machine learning)/Models/modelprostatefinal2.json"
 
 # Number of classes
 num_classes = 2
@@ -43,7 +44,7 @@ image_side = x_tot.image_side
 x_tot.shuffle(1337)
 y_tot.shuffle(1337)
 
-validation_samples = round(len(x_tot)*0.3)
+validation_samples = round(len(x_tot)*0.01) #TODO change back
 
 x_train = Dataset(image_side)
 y_train = Dataset(image_side)
@@ -80,12 +81,19 @@ val_set = XY_dataset(x_val,y_val, "test")
 print("Do predictions")
 val_preds = model.predict(val_set)
 
+
+threshold = 0.6
 for i in range(30):
     print("Save image",i)
-    mask = np.argmax(val_preds[i], axis=-1)
-    mask = np.expand_dims(mask, axis=-1)
-    img = PIL.ImageOps.autocontrast(keras.preprocessing.image.array_to_img(mask))
-    img.save(f"prediction{i}.jpg")
+    mask = val_preds[i,:,:,0]
+
+    otsu_threshold = threshold_otsu(mask)
+    if otsu_threshold > threshold:
+        mask = mask > otsu_threshold
+    else:
+        mask = mask > threshold
+    plt.imshow(mask)
+    plt.savefig(f"prediction{i}.jpg")
     
     img, mask = val_set[i]
     plt.imshow(mask)
