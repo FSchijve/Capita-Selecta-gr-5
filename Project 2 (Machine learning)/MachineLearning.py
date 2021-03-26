@@ -133,7 +133,7 @@ model.fit(train_set,
           steps_per_epoch=math.floor(len(train_set)/batch_size), # Don't change steps_per_epoch!
           validation_steps=len(val_set)) # Don't change validation_steps!
 
-val_set.datasettype = "test"
+val_set = XY_dataset(x_val,y_val,"test")
 
 score = model.evaluate(val_set, verbose=True)
 print(f"\n\nCheck if the bar above says {len(val_set)}/{len(val_set)}. If not: call Aart!")

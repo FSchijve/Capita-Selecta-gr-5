@@ -14,7 +14,7 @@ import math
 #%%
 # Variables to change
 
-patient_list_length = 20
+patient_list_length = 1
 image_side = 128
 dataset_type = "prostate_extra"
 
@@ -84,8 +84,9 @@ else:
     raise Exception(f"dataset_type {dataset_type} not recognized!")
     
 # Patient list SHORT, this list should be used just to check the code for the first few patients
-target_img_paths = target_img_paths[:patient_list_length]
-input_img_paths = input_img_paths[:patient_list_length]
+if patient_list_length != None:
+    target_img_paths = target_img_paths[:patient_list_length]
+    input_img_paths = input_img_paths[:patient_list_length]
 
 #%%
 
@@ -397,7 +398,6 @@ class XY_dataset():
         self.nonempty_nr = 0
 
         # Other variables
-        self.last_step = False
         self.verbose = verbose
         if y_set.image_side != x_set.image_side:
             raise Exception("images in the x_set and y_set are not of the same size!")
@@ -411,16 +411,12 @@ class XY_dataset():
     
     def __next__(self):
     # Return next batch
-        
-        # To fix error:
-        if self.datasettype == "test" and self.last_step:
-            raise StopIteration
 
         # After one epoch
         if self.batch_nr == self.number_of_batches:
             # Stop end evaluation after this step
             if self.datasettype == "test":
-                self.last_step = True
+                raise StopIteration
             # And go to next epoch
             self.batch_nr = 0
 
