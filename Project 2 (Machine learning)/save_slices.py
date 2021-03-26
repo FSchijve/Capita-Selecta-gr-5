@@ -16,7 +16,7 @@ import math
 
 patient_list_length = 20
 image_side = 128
-dataset_type = "original"
+dataset_type = "prostate_extra"
 
 #%%
 # Standard variables
@@ -91,7 +91,7 @@ input_img_paths = input_img_paths[:patient_list_length]
 
 # Normalization
 
-def normalize_img(img, dataset_type): 
+def normalize_img(img, dataset_type):
     # Enable when normalizing all values between 0 and 1:
     # img=img/np.amax(img)
     
@@ -353,7 +353,7 @@ class XY_dataset():
         # Determine the batch sizes of the empty and nonempty slices
         self.batch_size_empty = [math.floor(fraction_empty*batch_size)]*self.number_of_batches
         self.batch_size_nonempty = [math.floor(fraction_nonempty*batch_size)]*self.number_of_batches
-        
+        #TODO CHECK IF BATCHSIZE IS LARGE ENOUGH (HAS NONEMPTY SLICES)
         # If the batch size is 1 less then we want
         if self.batch_size_empty[0]+self.batch_size_nonempty[0] != self.batch_size:
             # If the batch size is even less then that, something probably went wrong.
@@ -515,7 +515,12 @@ if __name__ == '__main__':
         
         # Loop the slices 
         for slice in range(nr_slices):
-            if dataset_type in ["prostate_extra", "heart_extra"]:
+            if dataset_type == "prostate_extra":
+                mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
+                img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice,0])
+                print ('Patient step',i,'slice',slice)
+
+            if dataset_type == "heart_extra":
                 mask = np.rot90(nib.load(mask_path).get_fdata()[:,:,slice])
                 img  = np.rot90(nib.load(img_path).get_fdata()[:,:,slice])
                 print ('Patient step',i,'slice',slice)
