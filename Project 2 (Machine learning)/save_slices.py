@@ -73,8 +73,8 @@ elif dataset_type == "catsdogs":
     target_img_paths.remove(os.path.join(target_dir,'Egyptian_Mau_191.png'))
 
 elif dataset_type == "original":
-    processed_data_path = r"/home/8dm20-5/processed_original"
-    data_path = r"/home/8dm20-5/data1/data"
+    processed_data_path = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/preprocessed_data_original"
+    data_path = r"C:/Users/Dell/Documents/Medical_Imaging/CSMI_TUE/data"
     
     patient_list = [102, 107, 108, 109, 115, 116, 117, 119, 120, 125, 127, 128, 129, 133, 135]
 
@@ -353,45 +353,58 @@ class XY_dataset():
             else: # If slice is not empty
                 self.indices_nonempty.append(i)
 
-        # Determine which fraction is empty and which fraction is not
-        fraction_empty = len(self.indices_empty)/len(x_set)
-        fraction_nonempty = 1-fraction_empty
-        
-        # Determine the batch sizes of the empty and nonempty slices
-        self.batch_size_empty = [math.floor(fraction_empty*batch_size)]*self.number_of_batches
-        self.batch_size_nonempty = [math.floor(fraction_nonempty*batch_size)]*self.number_of_batches
-
-        # Check if every batch has nonempty slice if this is a training dataset
-        if self.datasettype == "train" and self.batch_size_nonempty[0] == 0:
-            raise Exception("Not every batch has a nonempty slice! Please increase the batch size.")
-
-        # If the batch size is 1 less then we want
-        if self.batch_size_empty[0]+self.batch_size_nonempty[0] != self.batch_size:
-            # If the batch size is even less then that, something probably went wrong.
-            if self.batch_size_empty[0]+self.batch_size_nonempty[0]+1 != self.batch_size:
-                raise Exception("empty-nonempty split failed - code should be rewritten! (Call Aart)")
-
-            # How many exra empty and nonempty slices we want
-            n_empty_extra = round(fraction_empty*self.number_of_batches)
-            n_nonempty_extra = self.number_of_batches - n_empty_extra
-            if n_empty_extra > len(self.indices_empty)-sum(self.batch_size_empty):
-                n_empty_extra = len(self.indices_empty)-sum(self.batch_size_empty)
+        if self.datasettype == "train":
+            # Determine which fraction is empty and which fraction is not
+            fraction_empty = len(self.indices_empty)/len(x_set)
+            fraction_nonempty = 1-fraction_empty
+            
+            # Determine the batch sizes of the empty and nonempty slices
+            self.batch_size_empty = [math.floor(fraction_empty*batch_size)]*self.number_of_batches
+            self.batch_size_nonempty = [math.floor(fraction_nonempty*batch_size)]*self.number_of_batches
+    
+            # Check if every batch has nonempty slice if this is a training dataset
+            if self.batch_size_nonempty[0] == 0:
+                raise Exception("Not every batch has a nonempty slice! Please increase the batch size.")
+    
+            # If the batch size is 1 less then we want
+            if self.batch_size_empty[0]+self.batch_size_nonempty[0] != self.batch_size:
+                # If the batch size is even less then that, something probably went wrong.
+                if self.batch_size_empty[0]+self.batch_size_nonempty[0]+1 != self.batch_size:
+                    raise Exception("empty-nonempty split failed - code should be rewritten! (Call Aart)")
+    
+                # How many exra empty and nonempty slices we want
+                n_empty_extra = round(fraction_empty*self.number_of_batches)
                 n_nonempty_extra = self.number_of_batches - n_empty_extra
-            if n_nonempty_extra > len(self.indices_nonempty)-sum(self.batch_size_nonempty):
-                n_nonempty_extra = len(self.indices_nonempty)-sum(self.batch_size_nonempty)
-                n_empty_extra = self.number_of_batches - n_nonempty_extra
+                if n_empty_extra > len(self.indices_empty)-sum(self.batch_size_empty):
+                    n_empty_extra = len(self.indices_empty)-sum(self.batch_size_empty)
+                    n_nonempty_extra = self.number_of_batches - n_empty_extra
+                if n_nonempty_extra > len(self.indices_nonempty)-sum(self.batch_size_nonempty):
+                    n_nonempty_extra = len(self.indices_nonempty)-sum(self.batch_size_nonempty)
+                    n_empty_extra = self.number_of_batches - n_nonempty_extra
+    
+                # Create lists to add
+                extra_empty = [1]*n_empty_extra + [0]*n_nonempty_extra
+                extra_nonempty = [0]*n_empty_extra + [1]*n_nonempty_extra
+                
+                # Shuffle lists
+                extra_empty, extra_nonempty = shuffle(extra_empty, extra_nonempty)
+                
+                # Add slices to batches
+                for i in range(len(extra_empty)):
+                    self.batch_size_empty[i] += extra_empty[i]
+                    self.batch_size_nonempty[i] += extra_nonempty[i]
 
-            # Create lists to add
-            extra_empty = [1]*n_empty_extra + [0]*n_nonempty_extra
-            extra_nonempty = [0]*n_empty_extra + [1]*n_nonempty_extra
-            
-            # Shuffle lists
-            extra_empty, extra_nonempty = shuffle(extra_empty, extra_nonempty)
-            
-            # Add slices to batches
-            for i in range(len(extra_empty)):
-                self.batch_size_empty[i] += extra_empty[i]
-                self.batch_size_nonempty[i] += extra_nonempty[i]
+        else:
+            self.batch_size_empty = []
+            self.batch_size_nonempty = []
+
+            for i in range(len(y_set)):
+                if np.array([y_set[i]]).sum() == 0: # If slice is empty
+                    self.batch_size_empty.append(1)
+                    self.batch_size_nonempty.append(0)
+                else: # If slice is not empty
+                    self.batch_size_empty.append(0)
+                    self.batch_size_nonempty.append(1)
                             
         # Set trackers to 0
         self.batch_nr = 0
@@ -403,7 +416,25 @@ class XY_dataset():
         if y_set.image_side != x_set.image_side:
             raise Exception("images in the x_set and y_set are not of the same size!")
         self.image_side = x_set.image_side
-        
+      
+    def __getitem__(self,index):
+        if self.datasettype == "train": raise Exception("Unfortunately this is not possible since images are shuffled everytime")
+        if self.batch_size_empty[index]:
+            i = 0
+            for j in range(index):
+                i += self.batch_size_empty[j]
+            x = self.x_set[self.indices_empty[i]]
+            y = self.y_set[self.indices_empty[i]]
+        elif self.batch_size_nonempty[index]:
+            i = 0
+            for j in range(index):
+                i += self.batch_size_nonempty[j]      
+            x = self.x_set[self.indices_nonempty[i]]
+            y = self.y_set[self.indices_nonempty[i]]
+        else: raise Exception("Slice must be either empty or nonempty - something went wrong!")
+
+        return x, y
+    
     def __len__(self):
         return len(self.x_set)
 
@@ -411,8 +442,8 @@ class XY_dataset():
         return self
     
     def __next__(self):
+        print(self.batch_nr)
     # Return next batch
-
         # After one epoch
         if self.batch_nr == self.number_of_batches:
             # Stop end evaluation after this step
@@ -502,10 +533,12 @@ if __name__ == '__main__':
         masks_val = Dataset(image_side)
 
     if dataset_type == "original":
-        indices = list(range(len(target_img_paths)))
-        random.shuffle(indices)
-        indices_train = indices[:5]
-        indices_val = indices[5:]
+        indices_val = [1,2,3,4,5,7,8,12,13,14]
+        indices_train = [0,6,9,10,11]
+        # indices = list(range(len(target_img_paths)))
+        # random.shuffle(indices)
+        # indices_train = indices[:5]
+        # indices_val = indices[5:]
 
     # loop over the patients
     for i, paths in enumerate(zip(target_img_paths, input_img_paths)):
@@ -575,7 +608,7 @@ if __name__ == '__main__':
                 masks_train.adddatasets([orig_mask,baf0_mask,baf1_mask,ba0_mask,ba1_mask,b_mask])
             if i in indices_val:
                 images_val.adddataset(orig_img)
-                masks_val.adddataset(orig_img)
+                masks_val.adddataset(orig_mask)
         
     if dataset_type != 'original':
         images.write(os.path.join(processed_data_path,"images.txt"))
